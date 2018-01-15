@@ -92,6 +92,8 @@ export { SurveyEditor } from "../editor";
 
 export { SurveysManager } from "../manage";
 
+export { ITreeNodeItem, TreeViewNodeItem } from "../components/treeview";
+
 //editorLocalization
 import "../localization/french";
 import "../localization/spanish";

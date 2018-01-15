@@ -1,0 +1,16 @@
+<script id="items-template" type="text/html">
+    <!-- ko foreach: items -->
+    <option data-bind="text: title, value: name, click: hasItems ? toggle : click, style:{ paddingLeft: padding}"></option>
+    <!-- ko if: hasItems && isExpanded() -->
+    <!-- ko template: "items-template" -->
+    <!-- /ko -->
+    <!-- /ko -->
+    <!-- /ko -->
+</script>
+
+<script id="tree-view-template" type="text/html">
+<select size="10">
+    <!-- ko template: "items-template" -->
+    <!-- /ko -->
+</select>
+</script>

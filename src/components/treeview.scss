@@ -1,0 +1,9 @@
+svd-tree-view {
+  display: block;
+  min-width: 200px;
+
+  select {
+    width: 100%;
+    overflow-x: scroll;
+  }
+}

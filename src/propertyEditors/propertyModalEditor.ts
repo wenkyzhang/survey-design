@@ -5,6 +5,7 @@ import { SurveyPropertyEditorFactory } from "./propertyEditorFactory";
 import { editorLocalization } from "../editorLocalization";
 import RModal from "rmodal";
 import insertAtCursor from "../utils/insertAtCursor";
+import { ITreeNodeItem, TreeViewNodeItem } from "../components/treeview";
 
 export class SurveyPropertyModalEditorCustomWidget {
   private static customWidgetId = 1;
@@ -228,6 +229,22 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
   constructor(property: Survey.JsonObjectProperty, private _type: string) {
     super(property);
   }
+
+  itemsProvider(path: string[]) {
+    return [
+      {
+        name: "a",
+        hasItems: true
+      },
+      {
+        name: "b",
+        hasItems: false
+      }
+    ];
+  }
+
+  clickHandler(item: ITreeNodeItem) {}
+
   public get editorType(): string {
     return this._type;
   }
