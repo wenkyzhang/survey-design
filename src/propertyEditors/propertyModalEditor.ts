@@ -231,8 +231,34 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
   public get editorType(): string {
     return this._type;
   }
+
   public get availableQuestions(): any[] {
-    return (this.object && this.object.survey.getAllQuestions()) || [];
+    if (!this.object) return [];
+
+    var availableQuestions = [];
+
+    var processQuestion = (namePrefix = "") => question => {
+      if (this.object.name !== question.name) {
+        if (
+          ["matrix", "matrixdynamic", "matrixdropdown", "paneldynamic"].indexOf(
+            question.getType()
+          ) === -1
+        ) {
+          availableQuestions.push({ name: namePrefix + question.name });
+        }
+      }
+    };
+
+    var parentType = this.object.parent.getType();
+    if (parentType === "page" || parentType === "panel") {
+      var questions = this.object.survey.getAllQuestions();
+      questions.forEach(processQuestion());
+    } else if (this.object.getType() === "paneldynamic") {
+      var questions = this.object.elements;
+      questions.forEach(processQuestion("panel."));
+    }
+
+    return availableQuestions;
   }
 
   public insertQuestion(question, element) {
