@@ -189,7 +189,6 @@ ko.bindingHandlers.aceEditor = {
   init: function(element, options) {
     var configs = options();
     var langTools = ace.require("ace/ext/language_tools");
-    var langUtils = ace.require("ace/autocomplete/util");
     var editor = ace.edit(element);
     var objectEditor: SurveyPropertyConditionEditor = configs.editor;
     var isUpdating = false;
@@ -245,90 +244,18 @@ ko.bindingHandlers.aceEditor = {
         editor.execCommand("insertstring", data.value || data);
       },
       getCompletions: (editor, session, pos, prefix, callback) => {
-        var configs = options();
-        var currentQuestion: Survey.QuestionBase = configs.question;
-        var usableQuestions = (configs.questions || []).filter(
-          q => q !== currentQuestion
+        var completions = doGetCompletions(
+          editor,
+          session,
+          pos,
+          prefix,
+          options,
+          completer
         );
-        if (
-          !!usableQuestions ||
-          currentQuestion instanceof Survey.MatrixDropdownColumn
-        ) {
-          if (
-            langUtils.retrievePrecedingIdentifier(
-              session.getLine(pos.row),
-              pos.column - 1
-            ) === "row" &&
-            currentQuestion instanceof Survey.MatrixDropdownColumn
-          ) {
-            callback(
-              null,
-              currentQuestion.colOwner["columns"].map(column => {
-                return {
-                  name: "",
-                  value: "{row." + column.name + "}",
-                  some: "",
-                  meta: column.title,
-                  identifierRegex: ID_REGEXP
-                };
-              })
-            );
-          } else {
-            var operationsFiltered = operations.filter(
-              op => op.value.indexOf(prefix) !== -1
-            );
-            if (operationsFiltered.length === 0) {
-              operationsFiltered = operations;
-            }
-            var questionsFiltered = usableQuestions.filter(
-              op => op.name.indexOf(prefix) !== -1
-            );
-            if (questionsFiltered.length === 0) {
-              questionsFiltered = usableQuestions;
-            }
-            var completions = [];
-            if (currentQuestion instanceof Survey.MatrixDropdownColumn) {
-              completions.push({
-                name: "",
-                value: "{row.",
-                some: "",
-                meta: editorLocalization.editorLocalization.getString(
-                  editorLocalization.defaultStrings.pe.aceEditorRowTitle
-                ),
-                identifierRegex: ID_REGEXP
-              });
-            }
-            completions = completions
-              .concat(
-                questionsFiltered.map(q => {
-                  return {
-                    completer: completer,
-                    name: "",
-                    value: "{" + q.name + "}",
-                    some: "",
-                    meta: q.title,
-                    identifierRegex: ID_REGEXP
-                  };
-                })
-              )
-              .concat(
-                operationsFiltered.map(op => {
-                  return {
-                    name: "",
-                    value: op.value,
-                    some: "",
-                    meta: op.title,
-                    identifierRegex: ID_REGEXP
-                  };
-                })
-              );
-            callback(null, completions);
-          }
-          return;
-        }
-        callback(null, []);
+        callback(null, completions);
       }
     };
+
     langTools.setCompleters([completer]);
     editor.setOptions({
       enableBasicAutocompletion: true,
@@ -343,3 +270,91 @@ ko.bindingHandlers.aceEditor = {
     editor.focus();
   }
 };
+
+export function doGetCompletions(
+  editor,
+  session,
+  pos,
+  prefix,
+  options,
+  completer
+) {
+  var completions = [];
+  var langUtils = ace.require("ace/autocomplete/util");
+  var configs = options();
+  var currentQuestion: Survey.QuestionBase = configs.question;
+  var usableQuestions = (configs.questions || []).filter(
+    q => q !== currentQuestion
+  );
+  if (
+    !!usableQuestions ||
+    currentQuestion instanceof Survey.MatrixDropdownColumn
+  ) {
+    if (
+      langUtils.retrievePrecedingIdentifier(
+        session.getLine(pos.row),
+        pos.column - 1
+      ) === "row" &&
+      currentQuestion instanceof Survey.MatrixDropdownColumn
+    ) {
+      completions = currentQuestion.colOwner["columns"].map(column => {
+        return {
+          name: "",
+          value: "{row." + column.name + "}",
+          some: "",
+          meta: column.title,
+          identifierRegex: ID_REGEXP
+        };
+      });
+    } else {
+      var operationsFiltered = operations.filter(
+        op => op.value.indexOf(prefix) !== -1
+      );
+      if (operationsFiltered.length === 0) {
+        operationsFiltered = operations;
+      }
+      var questionsFiltered = usableQuestions.filter(
+        op => op.name.indexOf(prefix) !== -1
+      );
+      if (questionsFiltered.length === 0) {
+        questionsFiltered = usableQuestions;
+      }
+      if (currentQuestion instanceof Survey.MatrixDropdownColumn) {
+        completions.push({
+          name: "",
+          value: "{row.",
+          some: "",
+          meta: editorLocalization.editorLocalization.getString(
+            editorLocalization.defaultStrings.pe.aceEditorRowTitle
+          ),
+          identifierRegex: ID_REGEXP
+        });
+      }
+      completions = completions
+        .concat(
+          questionsFiltered.map(q => {
+            return {
+              completer: completer,
+              name: "",
+              value: "{" + q.name + "}",
+              some: "",
+              meta: q.title,
+              identifierRegex: ID_REGEXP
+            };
+          })
+        )
+        .concat(
+          operationsFiltered.map(op => {
+            return {
+              name: "",
+              value: op.value,
+              some: "",
+              meta: op.title,
+              identifierRegex: ID_REGEXP
+            };
+          })
+        );
+    }
+  }
+  return completions;
+}
