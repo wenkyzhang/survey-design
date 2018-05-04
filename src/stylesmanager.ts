@@ -201,6 +201,9 @@ export class StylesManager {
     themeSelector: string = ".svd_container"
   ) {
     StylesManager.currentTheme(themeName);
+
+    if (this.currentTheme() === "bootstrap4") return;
+
     Survey.Survey.cssType =
       this.currentTheme() === "bootstrap" ? "bootstrap" : "default";
     Survey.StylesManager.applyTheme(themeName);

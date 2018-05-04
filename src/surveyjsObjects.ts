@@ -199,7 +199,10 @@ function elementOnAfterRendering(
 ) {
   surveyElement.renderedElement = domElement;
   surveyElement.renderedElement.classList.add("svd_question");
-  if (StylesManager.currentTheme() === "bootstrap") {
+  if (
+    StylesManager.currentTheme() === "bootstrap" ||
+    StylesManager.currentTheme() === "bootstrap4"
+  ) {
     surveyElement.renderedElement.classList.add("svd-dark-bg-color");
   }
   surveyElement.renderedElement.classList.add("svd_q_design_border");
