@@ -564,4 +564,15 @@
       content: "\200b";
     }
   }
+
+  .svd_custom_select {
+    &.svd-page-selector:before {
+      padding: 17px;
+    }
+
+    &:before {
+      padding: 19px;
+      z-index:1;
+    }
+  }
 }
