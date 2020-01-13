@@ -11,9 +11,24 @@ export class QuestionConverter {
     }
     QuestionConverter.convertInfo[className].push(convertToClassName);
   }
-  public static getConvertToClasses(className: string): Array<string> {
+  public static getConvertToClasses(
+    className: string,
+    availableTypes: Array<string> = null
+  ): Array<string> {
     var res = QuestionConverter.convertInfo[className];
-    return res ? res : [];
+    if (!res) return [];
+    if (
+      !!availableTypes &&
+      Array.isArray(availableTypes) &&
+      availableTypes.length > 0
+    ) {
+      for (var i = res.length - 1; i >= 0; i--) {
+        if (availableTypes.indexOf(res[i]) < 0) {
+          res.splice(i, 1);
+        }
+      }
+    }
+    return !!res ? res : [];
   }
   public static convertObject(
     obj: Survey.Question,
@@ -36,10 +51,7 @@ export class QuestionConverter {
 }
 
 function createDefaultQuestionConverterItems() {
-  var classes = Survey.JsonObject.metaData.getChildrenClasses(
-    "selectbase",
-    true
-  );
+  var classes = Survey.Serializer.getChildrenClasses("selectbase", true);
   for (var i = 0; i < classes.length; i++) {
     for (var j = 0; j < classes.length; j++) {
       if (i == j) continue;

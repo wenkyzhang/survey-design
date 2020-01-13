@@ -91,7 +91,7 @@ export class SurveyNestedPropertyEditor extends SurveyPropertyItemsEditor {
     for (var i = 0; i < names.length; i++) {
       var name = names[i];
       name.name ? name.name : name;
-      var prop = Survey.JsonObject.metaData.findProperty(className, name);
+      var prop = Survey.Serializer.findProperty(className, name);
       if (prop && prop.visible) {
         res.push(prop);
       }
@@ -120,6 +120,7 @@ export class SurveyNestedPropertyEditor extends SurveyPropertyItemsEditor {
 }
 
 export class SurveyNestedPropertyEditorItem {
+  public koHasDetails: any;
   protected options: ISurveyObjectEditorOptions;
   private koCellsValue = ko.observableArray<
     SurveyNestedPropertyEditorEditorCell
@@ -131,6 +132,7 @@ export class SurveyNestedPropertyEditorItem {
     options: ISurveyObjectEditorOptions
   ) {
     this.options = options;
+    this.koHasDetails = ko.observable(true);
     ko.computed(() => {
       var columns = this.getColumns();
       this.koCellsValue([]);
@@ -145,8 +147,19 @@ export class SurveyNestedPropertyEditorItem {
       }
     });
   }
+  protected getClassName(): string {
+    return "";
+  }
   public get columns(): Array<SurveyNestedPropertyEditorColumn> {
     return this.getColumns();
+  }
+  public onCreated() {
+    this.updateDetailButton();
+  }
+  private updateDetailButton() {
+    this.koHasDetails(
+      SurveyQuestionEditorDefinition.hasTabsToShow(this.getClassName())
+    );
   }
   public get itemEditor(): SurveyQuestionEditor {
     if (!this.itemEditorValue)
@@ -168,7 +181,11 @@ export class SurveyNestedPropertyEditorItem {
     this.itemEditorValue = null;
   }
   protected createSurveyQuestionEditor() {
-    return null;
+    return new SurveyQuestionEditor(
+      this.obj,
+      this.getClassName(),
+      this.options
+    );
   }
   public apply() {
     if (this.itemEditorValue) this.itemEditorValue.apply();

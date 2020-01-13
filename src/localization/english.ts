@@ -5,6 +5,9 @@ export var enStrings = {
   //survey templates
   survey: {
     edit: "Edit",
+    externalHelpLink: "Watch and learn how to create surveys",
+    externalHelpLinkUrl:
+      "https://www.youtube.com/channel/UCH2ru9okIcooNZfpIbyq4qQ?view_as=subscriber",
     dropQuestion: "Please drop a question here from the Toolbox on the left.",
     copy: "Copy",
     addToToolbox: "Add to toolbox",
@@ -32,7 +35,7 @@ export var enStrings = {
     rating: "Rating",
     text: "Single Input",
     boolean: "Boolean",
-    expression: "Expression",
+    expression: "Expression (read-only)",
     flowpanel: "Flow Panel"
   },
   //Strings in Editor
@@ -40,6 +43,9 @@ export var enStrings = {
     defaultLocale: "Default ({0})",
     survey: "Survey",
     settings: "Survey Settings",
+    opjectPropertiesHeader: "Advanced",
+    showObjectProperties: "Show Object Properties",
+    hideObjectProperties: "Hide Object Properties",
     editSurvey: "Edit Survey",
     addNewPage: "Add New Page",
     moveRight: "Scroll to the Right",
@@ -54,6 +60,7 @@ export var enStrings = {
     testSurvey: "Test Survey",
     testSurveyAgain: "Test Survey Again",
     testSurveyWidth: "Survey width: ",
+    logic: "Survey Logic",
     embedSurvey: "Embed Survey",
     translation: "Translation",
     saveSurvey: "Save Survey",
@@ -65,6 +72,7 @@ export var enStrings = {
     generateValidJSON: "Generate Valid JSON",
     generateReadableJSON: "Generate Readable JSON",
     toolbox: "Toolbox",
+    "property-grid": "Properties",
     toolboxGeneralCategory: "General",
     delSelObject: "Delete selected object",
     editSelObject: "Edit selected object",
@@ -90,7 +98,74 @@ export var enStrings = {
     bold: "Bold",
     italic: "Italic",
     underline: "Underline",
-    fpAddQuestion: "Add question..."
+    fpAddQuestion: "Add question...",
+    completedHtmlOnConditionItemText: "Show if:",
+    lg: {
+      //Logic tab strings
+      page_visibilityName: "Page visibility",
+      panel_visibilityName: "Panel visibility",
+      panel_enableName: "Panel enable/disable",
+      question_visibilityName: "Question visibility",
+      question_enableName: "Question enable/disable",
+      question_requireName: "Question optional required",
+      trigger_completeName: "Complete survey",
+      trigger_setvalueName: "Set question value",
+      trigger_copyvalueName: "Copy question value",
+      trigger_skipName: "Skip to question",
+      trigger_runExpressionName: "Run custom expression",
+      completedHtmlOnConditionName: "Custom 'Thank you page' text",
+
+      page_visibilityDescription:
+        "Make the page visible when the logic expression returns true. Otherwise keep it invisible.",
+      panel_visibilityDescription:
+        "Make the panel visible when the logic expression returns true. Otherwise keep it invisible.",
+      panel_enableDescription:
+        "Make the panel, and all elements inside it, enable when the logic expression returns true. Otherwise keep them disabled.",
+      question_visibilityDescription:
+        "Make the question visible when the logic expression returns true. Otherwise keep it invisible.",
+      question_enableDescription:
+        "Make the question enable when the logic expression returns true. Otherwise keep it disabled.",
+      question_requireDescription:
+        "Question becomes required when the logic expression returns true.",
+      trigger_completeDescription:
+        "When the logic expression returns true then the survey becomes completed and an end-user see the 'Thank you page'.",
+      trigger_setvalueDescription:
+        "When question values, that are used in the logic expression, are changed and the logic expression returns true, then the value is set to the selected question.",
+      trigger_copyvalueDescription:
+        "When question values, that are used in the logic expression, are changed and the logic expression returns true, then the value of one selected question is copied to another selected question.",
+      trigger_skipDescription:
+        "When the logic expression returns true then the survey skip to / focus the selected question.",
+      trigger_runExpressionDescription:
+        "When the logic expression returns true, then the custom expression is performed. You may optionally set this expression result into the selected question",
+      completedHtmlOnConditionDescription:
+        "If the logic expression returns true, then the default text for the 'Thank you page' is changed to the given one.",
+
+      itemExpressionText: "When expression: '{0}' returns true:", //{0} - the expression
+      page_visibilityText: "Make page {0} visible", //{0} page name
+      panel_visibilityText: "Make panel {0} visible", //{0} panel name
+      panel_enableText: "Make panel {0} enable", //{0} panel name
+      question_visibilityText: "Make question {0} visible", //{0} question name
+      question_enableText: "Make question {0} enable", //{0} question name
+      question_requireText: "Make question {0} required", //{0} question name
+      trigger_completeText: "Survey becomes completed",
+      trigger_setvalueText: "Set into question: {0} value {1}", //{0} question name, {1} setValue
+      trigger_copyvalueText: "Copy into question: {0} value from question {1}", //{0} and {1} question names
+      trigger_skipText: "Survey skip to the question {0}", //{0} question name
+      trigger_runExpressionText1: "Run expression: '{0}'", //{0} the expression
+      trigger_runExpressionText2: " and set it's result into question: {0}", //{0} question name
+      completedHtmlOnConditionText:
+        "Show custom text for the 'Thank you page'.",
+
+      expressionEditorTitle: "Setup the logic expression",
+
+      deleteOperation: "Delete operation",
+      addNewOperation: "Add New Operation(s)",
+
+      expressionInvalid:
+        "The logic expression is empty or invalid. Please correct it.",
+      noOperationError: "Please, add at least one operation.",
+      operationInvalid: "Please, fix problems in your operation(s)."
+    }
   },
   //Property names in table headers
   pel: {
@@ -100,23 +175,34 @@ export var enStrings = {
   pe: {
     apply: "Apply",
     ok: "OK",
+    save: "Save",
     cancel: "Cancel",
     reset: "Reset",
     close: "Close",
     delete: "Delete",
+    add: "Add",
     addNew: "Add New",
     addItem: "Click to add an item...",
+    addOther: "Other",
+    addSelectAll: "Select All",
+    addNone: "None",
     removeAll: "Remove All",
     edit: "Edit",
+    back: "Return without saving",
+    saveAndBack: "Save and return",
     itemValueEdit: "Visible If",
     editChoices: "Edit Choices",
+    showChoices: "Show Choices",
     move: "Move",
     empty: "<empty>",
     notEmpty: "<edit value>",
     fastEntry: "Fast Entry",
     formEntry: "Form Entry",
     testService: "Test the service",
+    itemSelectorEmpty: "Please select the element",
     conditionSelectQuestion: "Select question...",
+    conditionSelectPage: "Select page...",
+    conditionSelectPanel: "Select panel...",
     conditionValueQuestionTitle: "Please enter/select the value",
     conditionButtonAdd: "Add",
     conditionButtonReplace: "Replace",
@@ -148,6 +234,13 @@ export var enStrings = {
 
     hasOther: "Has other item",
     otherText: "Other item text",
+    hasNone: "Has none item",
+    noneText: "None item text",
+    hasSelectAll: "Has select all item",
+    selectAllText: "Select all item text",
+    choicesMin: "Minimum value for auto generated items",
+    choicesMax: "Maximum value for auto generated items",
+    choicesStep: "The difference between auto generated items",
     name: "Name",
     title: "Title",
     cellType: "Cell type",
@@ -155,6 +248,8 @@ export var enStrings = {
     choicesOrder: "Select choices order",
     visible: "Is visible?",
     isRequired: "Is required?",
+    isAllRowRequired: "Require answer for all rows",
+    requiredErrorText: "Required error text",
     startWithNewLine: "Is start with new line?",
     rows: "Row count",
     placeHolder: "Input place holder",
@@ -168,6 +263,9 @@ export var enStrings = {
     addRowLocation: "Add row button location",
     addRowText: "Add row button text",
     removeRowText: "Remove row button text",
+    rateMin: "Minimum rate",
+    rateMax: "Maximum rate",
+    rateStep: "Rate step",
     minRateDescription: "Minimum rate description",
     maxRateDescription: "Maximum rate description",
     inputType: "Input type",
@@ -183,6 +281,8 @@ export var enStrings = {
     //survey
     showTitle: "Show/hide title",
     locale: "Default language",
+    simulator: "Choose device",
+    landscapeOrientation: "Landscape",
     mode: "Mode (edit/read only)",
     clearInvisibleValues: "Clear invisible values",
     cookieName: "Cookie name (to disable run survey two times locally)",
@@ -220,6 +320,23 @@ export var enStrings = {
     panelAddText: "Adding panel text",
     panelRemoveText: "Removing panel text",
     isSinglePage: "Show all elements on one page",
+    html: "Html",
+    expression: "Expression",
+
+    minValue: "Minimum value",
+    maxValue: "Maximum value",
+    minLength: "Minimum length",
+    allowDigits: "Allow digits",
+    minCount: "Minimum count",
+    maxCount: "Maximum count",
+    regex: "Regular expression",
+
+    totalText: "Total text",
+    totalType: "Total type",
+    totalExpression: "Total expression",
+    totalDisplayStyle: "Total display style",
+    totalCurrency: "Total currency",
+    totalFormat: "Total format",
 
     tabs: {
       general: "General",
@@ -240,10 +357,13 @@ export var enStrings = {
       navigation: "Navigation",
       question: "Question",
       completedHtml: "Completed Html",
+      completedHtmlOnCondition: "Completed Html on Condition",
       loadingHtml: "Loading Html",
       timer: "Timer/Quiz",
+      calculatedValues: "Calculated Values",
       triggers: "Triggers",
-      templateTitle: "Template title"
+      templateTitle: "Template title",
+      totals: "Totals"
     },
     editProperty: "Edit property '{0}'",
     items: "[ Items: {0} ]",
@@ -261,7 +381,9 @@ export var enStrings = {
     triggerFromName: "Copy value from: ",
     triggerRunExpression: "Run this Expression:",
     triggerSetValue: "to: ",
-    triggerIsVariable: "Do not put the variable into the survey result."
+    triggerGotoName: "Go to the question:",
+    triggerIsVariable: "Do not put the variable into the survey result.",
+    triggerRunExpressionEmpty: "Please enter a valid expression"
   },
   //Property values
   pv: {
@@ -331,6 +453,8 @@ export var enStrings = {
     notequal: "not equals",
     contains: "contains",
     notcontains: "not contains",
+    anyof: "any of",
+    allof: "all of",
     greater: "greater",
     less: "less",
     greaterorequal: "greater or equals",
@@ -369,8 +493,9 @@ export var enStrings = {
     completetrigger: "complete survey",
     setvaluetrigger: "set value",
     copyvaluetrigger: "copy value",
+    skiptrigger: "skip to question",
     runexpressiontrigger: "run expression",
-    visibletrigger: "change visibility"
+    visibletrigger: "change visibility (deprecated)"
   },
   //Properties
   p: {
@@ -532,15 +657,7 @@ export var enStrings = {
     hasNone: "hasNone",
     noneText: "noneText",
 
-    text: "text",
-    minValue: "minimumValue",
-    maxValue: "maximumValue",
-    minLength: "minimumLength",
-    maxLength: "maximumLength",
-    allowDigits: "allowDigits",
-    minCount: "minimumCount",
-    maxCount: "maximumCount",
-    regex: "regularExpression"
+    text: "text"
   }
 };
 //Uncomment this line on creating a translation file. You should replace "en" and enStrings with your locale ("fr", "de" and so on) and your variable.

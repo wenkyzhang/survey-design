@@ -59,20 +59,23 @@ ko.components.register("item-editor", {
         componentInfo.element,
         params.editor
       );
-      var property = Survey.JsonObject.metaData.findProperty(
+      var property = Survey.Serializer.findProperty(
         params.target.getType(),
         params.name
       );
       model.valueChanged = newValue => {
         var options = {
           propertyName: property.name,
-          obj: params.model,
+          obj: params.item,
           value: newValue,
           newValue: null,
           doValidation: false
         };
         params.editor.onValueChangingCallback(options);
         newValue = options.newValue === null ? options.value : options.newValue;
+        if (!newValue && params.name == "value") {
+          newValue = params.item.value;
+        }
         params.target[params.name] = newValue;
         params.editor.onPropertyValueChanged(property, params.target, newValue);
         !!params.valueChanged &&
@@ -178,7 +181,8 @@ export var createAddItemHandler = (
 export var createAddItemElement = handler => {
   var addNew = document.createElement("div");
   addNew.title = editorLocalization.getString("pe.addItem");
-  addNew.className = "svda-add-new-item svd-primary-icon";
+  addNew.className =
+    "sv_technical svda-add-new-item svd-primary-icon svda-add-custom-item";
   addNew.onclick = handler;
 
   var svgElem: any = document.createElementNS(
@@ -199,7 +203,21 @@ export var createAddItemElement = handler => {
   );
   svgElem.appendChild(useElem);
   addNew.appendChild(svgElem);
+  // var title = document.createElement("span");
+  // title.innerHTML = addNew.title;
+  // addNew.appendChild(title);
   return addNew;
+};
+
+export var createCustomElement = (title, handler) => {
+  var element = document.createElement("div");
+  element.title = title;
+  element.className = "sv_technical svda-add-new-item svda-add-custom-item";
+  element.onclick = handler;
+  var titleEl = document.createElement("span");
+  titleEl.innerHTML = element.title;
+  element.appendChild(titleEl);
+  return element;
 };
 
 export var itemDraggableAdorner = {
@@ -217,7 +235,12 @@ export var itemDraggableAdorner = {
     model: QuestionSelectBase,
     editor: SurveyCreator
   ) => {
-    var itemsRoot = elements[0].parentElement;
+    var itemsRoot = [];
+    for (var i = 0; i < elements.length; i++) {
+      if (itemsRoot.indexOf(elements[i].parentElement) === -1) {
+        itemsRoot.push(elements[i].parentElement);
+      }
+    }
     for (var i = 0; i < elements.length; i++) {
       var itemValue = ko.dataFor(elements[i]);
       if (
@@ -228,18 +251,30 @@ export var itemDraggableAdorner = {
         elements[i].classList.remove("item_draggable");
       }
     }
-    var sortable = Sortable.create(itemsRoot, {
-      handle: ".svda-drag-handle",
-      draggable: ".item_draggable",
-      animation: 150,
-      onEnd: evt => {
-        var choices = model.choices;
-        var choice = choices[evt.oldIndex];
-        choices.splice(evt.oldIndex, 1);
-        choices.splice(evt.newIndex, 0, choice);
-        editor.onQuestionEditorChanged(model);
-      }
-    });
+    itemsRoot.forEach(itemRoot =>
+      Sortable.create(itemRoot, {
+        handle: ".svda-drag-handle",
+        group: model.id,
+        draggable: ".item_draggable",
+        animation: 150,
+        onEnd: evt => {
+          var oldIndex = evt.oldIndex;
+          var newIndex = evt.newIndex;
+          var choices = model.choices;
+          var choice = choices[evt.oldIndex];
+          if (model.hasColumns) {
+            choice = ko.dataFor(evt.item);
+            var columnContent = ko.dataFor(evt.item.parentElement);
+            var itemBefore = columnContent && columnContent[newIndex];
+            oldIndex = choices.indexOf(choice);
+            newIndex = choices.indexOf(itemBefore);
+          }
+          choices.splice(oldIndex, 1);
+          choices.splice(newIndex, 0, choice);
+          editor.onQuestionEditorChanged(model);
+        }
+      })
+    );
     var addNew = createAddItemElement(
       createAddItemHandler(
         model,
@@ -256,7 +291,73 @@ export var itemDraggableAdorner = {
         }
       )
     );
-    itemsRoot.appendChild(addNew);
+    var raiseChangingEvent = (target: any, propertyName: string, newValue: any) => {
+      var options = {
+        propertyName: propertyName,
+        obj: target,
+        value: newValue,
+        newValue: null,
+        doValidation: false
+      };
+      editor.onValueChangingCallback(options);
+      newValue = options.newValue === null ? options.value : options.newValue;
+      return newValue;
+    };
+    var raiseChangedEvent = (target: any, propertyName: string, newValue: any) => {
+      if(typeof target.getType === "function") {
+        var property = Survey.Serializer.findProperty(
+          target.getType(),
+          propertyName
+        );
+        editor.onPropertyValueChanged(property, target, newValue);
+      }
+    }
+    itemsRoot[0].appendChild(addNew);
+    if (editor.canShowObjectProperty(model, "hasOther") && model.hasOther !== true) {
+      itemsRoot[0].appendChild(
+        createCustomElement(
+          editorLocalization.getString("pe.addOther"),
+          () => {
+            var newValue = !model.hasOther;
+            newValue = raiseChangingEvent(model, "hasOther", newValue);
+            model.hasOther = newValue;
+            raiseChangedEvent(model, "hasOther", newValue);
+          }
+        )
+      );
+    }
+    if (
+      model.hasSelectAll !== undefined && model.hasSelectAll !== true &&
+      editor.canShowObjectProperty(model, "hasSelectAll")
+    ) {
+      itemsRoot[0].appendChild(
+        createCustomElement(
+          editorLocalization.getString("pe.addSelectAll"),
+          () => {
+            var newValue = !model.hasSelectAll;
+            newValue = raiseChangingEvent(model, "hasSelectAll", newValue);
+            model.hasSelectAll = newValue;
+            raiseChangedEvent(model, "hasSelectAll", newValue);
+          }
+        )
+      );
+    }
+    if (
+      model.hasNone !== undefined && model.hasNone !== true &&
+      editor.canShowObjectProperty(model, "hasNone")
+    ) {
+      itemsRoot[0].appendChild(
+        createCustomElement(
+          editorLocalization.getString("pe.addNone"),
+          () => {
+            var newValue = !model.hasNone;
+            newValue = raiseChangingEvent(model, "hasNone", newValue);
+            model.hasNone = newValue;
+            raiseChangedEvent(model, "hasNone", newValue);
+          }
+        )
+      );
+    }
   }
 };
 

@@ -15,3 +15,7 @@ export * from "../utilsTests";
 export * from "../adornersTests";
 export * from "../textWorker";
 export * from "../translationtest";
+export * from "../editableObjectTests";
+export * from "../logicTest";
+export * from "../surveyElementSelectorTests";
+export * from "../expressionToDisplayTextTest";

@@ -6,7 +6,6 @@
 @import "editor-tabs";
 @import "toolbox";
 @import "toolbar";
-@import "pages-editor";
 @import "templates/translation";
 @import "properties";
 @import "bootstrap-material";
@@ -31,6 +30,15 @@
     margin-right: 7px;
   }
   #testSurveyLocale {
+    width: 200px;
+    display: inline-block;
+    margin-bottom: 3px;
+    margin-right: 7px;
+  }
+  #testShowInvisibleElements {
+    margin-right: 20px;
+  }
+  #testDeviceSelector {
     width: 200px;
     display: inline-block;
     margin-bottom: 3px;
@@ -192,20 +200,58 @@
     border: none;
     .svd_survey_designer {
       position: relative;
+      display: table;
+      table-layout: fixed;
+      width: 100%;
 
       .svd_editors {
+        display: table-cell;
+        vertical-align: top;
+        padding: 0 15px;
+        width: 100%;
+
         .svd_questions_editor {
           height: $editor-height;
           overflow-y: scroll;
           padding-top: 18px;
           position: relative;
-          .empty-message {
-            text-align: center;
-            font-size: 22px;
+          .svd-survey-placeholder-root {
             position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
+            top: 0;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: $primary-bg-color;
+            .svd-survey-placeholder {
+              position: relative;
+              width: 100%;
+              height: 100%;
+              .svd-survey-gallery {
+                height: 40px;
+                line-height: 40px;
+                text-align: center;
+                background-color: $secondary-bg-color;
+                margin: 6px;
+                a {
+                  color: $primary-text-color;
+                  margin-top: 50px;
+                  font-size: 14px;
+                  text-decoration: underline;
+                  img {
+                    margin-top: -5px;
+                    margin-right: 1em;
+                  }
+                }
+              }
+              .empty-message {
+                text-align: center;
+                font-size: 22px;
+                position: absolute;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+              }
+            }
           }
           .panel-body,
           .card-block {
@@ -380,7 +426,7 @@
 
 .svd_container {
   .svd_commercial_container {
-    padding: 1em 0 0 2em;
+    padding: 1em 0 0.5em 2em;
     .svd_commercial_text {
       font-weight: bold;
       text-decoration: none;
@@ -424,6 +470,7 @@
     max-width: 100%;
     margin-bottom: 5px;
     font-weight: 700;
+    vertical-align: top;
   }
   .form-group {
     margin-bottom: 15px;
@@ -516,21 +563,12 @@
       border-bottom-color: transparent;
     }
   }
-  .svd_toolbox {
-    float: left;
-    width: 15%;
-  }
   .svd_editors {
-    display: inline-block;
-    width: 60%;
+    display: table-cell;
+    vertical-align: top;
     padding: 0 15px;
-    &.svd_wide {
-      width: 85%;
-    }
   }
   .svd_properties {
-    float: right;
-    width: 25%;
     table {
       width: 100%;
     }
@@ -689,6 +727,42 @@
   }
 }
 
+.svd-logic-item-header {
+  background-color: #e0e0e0;
+  min-height: 32px;
+  line-height: 32px;
+  margin-top: 2em;
+  margin-bottom: 1em;
+  font-size: 14px;
+  padding: 0 1em;
+
+  .svd-logic-header-item-icon {
+    display: inline-block;
+    cursor: pointer;
+    padding-right: 10px;
+
+    svg-icon {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+
+      svg {
+        display: block;
+        margin-top: 3px;
+      }
+    }
+
+    .svd-logic-header-icon-text {
+    }
+  }
+  .svd-logic-header-item-text {
+  }
+}
+.svd_container_disabled {
+  .item_editable {
+    pointer-events: none;
+  }
+}
 @media all and (-ms-high-contrast: none) {
   *::-ms-backdrop,
   .svd_container use {

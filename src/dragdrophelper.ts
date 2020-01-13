@@ -7,13 +7,13 @@ if (!!ko.options) {
 }
 
 export class DragDropTargetElement {
-  public nestedPanelDepth: number = -1;
   constructor(
     public page: Survey.Page,
     public target: any,
-    public source: any
+    public source: any,
+    nestedPanelDepth: number = -1
   ) {
-    page.dragDropStart(source, target); //, DragDropTargetElement.nestedPanelPath);
+    page.dragDropStart(source, target, nestedPanelDepth);
   }
   public moveTo(
     destination: any,
@@ -268,7 +268,7 @@ export class DragDropHelper {
       if (prevedDefault) {
         event.preventDefault();
       }
-      if(!this.readOnly) {
+      if (!this.readOnly) {
         var newElement = this.ddTarget.doDrop();
         if (this.onModifiedCallback)
           this.onModifiedCallback({
@@ -291,14 +291,10 @@ export class DragDropHelper {
       this.ddTarget.moveTo(null, false);
     }
   }
-  public scrollToElement(el: HTMLElement) {
-    if (!this.scrollableElement || !el) return;
-    el.scrollIntoView(false);
-  }
   private createTargetElement(elementName: string, json: any): any {
     if (!elementName || !json) return null;
     var targetElement = null;
-    targetElement = Survey.JsonObject.metaData.createClass(json["type"]);
+    targetElement = Survey.Serializer.createClass(json["type"]);
     new Survey.JsonObject().toObject(json, targetElement);
     targetElement.name = elementName;
     if (targetElement["setSurveyImpl"]) {
@@ -315,7 +311,7 @@ export class DragDropHelper {
     var height = <number>event.currentTarget["clientHeight"];
     var y = event.offsetY;
     if (event.hasOwnProperty("layerX")) {
-      y = event.layerY - <number>event.currentTarget["offsetTop"];
+      y = event["layerY"] - <number>event.currentTarget["offsetTop"];
     }
     return {
       isBottom: y > height / 2,
@@ -331,7 +327,7 @@ export class DragDropHelper {
     var elY = <number>el.offsetTop + <number>el.clientHeight;
     var y = event.offsetY;
     if (event.hasOwnProperty("layerX")) {
-      y = event.layerY - <number>event.currentTarget["offsetTop"];
+      y = event["layerY"] - <number>event.currentTarget["offsetTop"];
     }
     return y > elY;
   }
@@ -431,9 +427,9 @@ export class DragDropHelper {
     this.ddTarget = new DragDropTargetElement(
       <Survey.Page>this.survey.currentPage,
       targetElement,
-      source
+      source,
+      DragDropHelper.nestedPanelDepth
     );
-    this.ddTarget.nestedPanelDepth = DragDropHelper.nestedPanelDepth;
   }
   private setData(event: DragEvent, text: string) {
     if (event["originalEvent"]) {

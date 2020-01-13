@@ -1,13 +1,16 @@
 import * as ko from "knockout";
 import * as Survey from "survey-knockout";
 import { SurveyPropertyModalEditor } from "./propertyModalEditor";
-import { SurveyPropertyEditorBase } from "./propertyEditorBase";
+import {
+  SurveyPropertyEditorBase,
+  ISurveyObjectEditorOptions
+} from "./propertyEditorBase";
 import { editorLocalization } from "../editorLocalization";
 import { SurveyPropertyEditorFactory } from "./propertyEditorFactory";
 
 export class SurveyPropertyDefaultValueEditor extends SurveyPropertyModalEditor {
   public static defaultQuestionName = "question";
-  public static createJsonFromQuestion(obj: any): any {
+  public static createJsonFromQuestion(obj: any, readOnly: boolean): any {
     var qjson = new Survey.JsonObject().toJsonObject(obj);
     qjson.name = SurveyPropertyDefaultValueEditor.defaultQuestionName;
     qjson.type = obj.getType();
@@ -15,29 +18,54 @@ export class SurveyPropertyDefaultValueEditor extends SurveyPropertyModalEditor 
       qjson.type = "text";
     }
     qjson.titleLocation = "hidden";
-    qjson.showClearButton = true;
+    //qjson.showClearButton = true;
     qjson.storeOthersAsComment = false;
-    delete qjson["visible"];
-    delete qjson["visibleIf"];
-    delete qjson["enable"];
-    delete qjson["enableIf"];
+    qjson.readOnly = readOnly;
+    SurveyPropertyDefaultValueEditor.deleteConditionProperties(qjson);
+    if (!!qjson.choices) {
+      for (var i = 0; i < qjson.choices.length; i++) {
+        SurveyPropertyDefaultValueEditor.deleteConditionProperties(
+          qjson.choices[i]
+        );
+      }
+    }
     return qjson;
   }
-  public static createSurveyFromJsonQuestion(questionJson: any): Survey.Survey {
+  private static deleteConditionProperties(json: any) {
+    delete json["visible"];
+    delete json["visibleIf"];
+    delete json["enable"];
+    delete json["enableIf"];
+    delete json["valueName"];
+  }
+  public static createSurveyFromJsonQuestion(
+    questionJson: any,
+    options: ISurveyObjectEditorOptions
+  ): Survey.Survey {
     var json = {
       questions: [],
       showNavigationButtons: false,
       showQuestionNumbers: "off"
     };
     json.questions.push(questionJson);
-    return new Survey.Survey(json);
+    return !!options
+      ? options.createSurvey(json, "defaultValueEditor")
+      : new Survey.Survey(json);
   }
   public survey: Survey.Survey;
   koSurvey: any;
 
   constructor(property: Survey.JsonObjectProperty) {
     super(property);
-    this.koSurvey = ko.observable(new Survey.Survey());
+    this.koSurvey = ko.observable(
+      !!this.options && this.options.createSurvey({}, "defaultValueEditor")
+    );
+  }
+  public resetText(): string {
+    return editorLocalization.getString("pe.reset");
+  }
+  public resetValue(model: SurveyPropertyDefaultValueEditor) {
+    model.koSurvey().data = {};
   }
   public getValueText(value: any): string {
     if (!value) return editorLocalization.getString("pe.empty");
@@ -56,7 +84,8 @@ export class SurveyPropertyDefaultValueEditor extends SurveyPropertyModalEditor 
   }
   private createSurvey() {
     this.survey = SurveyPropertyDefaultValueEditor.createSurveyFromJsonQuestion(
-      this.buildQuestionJson()
+      this.buildQuestionJson(),
+      this.options
     );
 
     this.survey.setValue(
@@ -66,7 +95,10 @@ export class SurveyPropertyDefaultValueEditor extends SurveyPropertyModalEditor 
     this.koSurvey(this.survey);
   }
   protected buildQuestionJson(): any {
-    return SurveyPropertyDefaultValueEditor.createJsonFromQuestion(this.object);
+    return SurveyPropertyDefaultValueEditor.createJsonFromQuestion(
+      this.object,
+      this.readOnly()
+    );
   }
   protected getSurveyInitialValue(): any {
     return this.editingValue;
@@ -156,13 +188,14 @@ export class SurveyPropertySetEditor extends SurveyPropertyDefaultValueEditor {
   }
   protected buildQuestionJson(): any {
     var question = new Survey.QuestionCheckbox("q1");
-    var hasTagbox = !!Survey.JsonObject.metaData.findClass("tagbox");
+    var hasTagbox = !!Survey.Serializer.findClass("tagbox");
     question.hasSelectAll = !hasTagbox;
     if (!!this.property) {
       question.choices = this.property.getChoices(this.object);
     }
     var json = SurveyPropertyDefaultValueEditor.createJsonFromQuestion(
-      question
+      question,
+      this.readOnly()
     );
     if (hasTagbox) {
       json.type = "tagbox";

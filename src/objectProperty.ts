@@ -6,7 +6,6 @@ import {
   ISurveyObjectEditorOptions
 } from "./propertyEditors/propertyEditorBase";
 import { SurveyPropertyEditorFactory } from "./propertyEditors/propertyEditorFactory";
-import { editorLocalization } from "./editorLocalization";
 
 export declare type SurveyOnPropertyChangedCallback = (
   property: SurveyObjectProperty,
@@ -15,15 +14,17 @@ export declare type SurveyOnPropertyChangedCallback = (
 
 export class SurveyObjectProperty {
   private objectValue: any;
-  private isValueUpdating: boolean;
   private onPropertyChanged: SurveyOnPropertyChangedCallback;
   private isActiveValue: boolean;
+  public onChanged: (newValue: any) => any;
   public name: string;
   public disabled: boolean;
   public editor: SurveyPropertyEditorBase;
   public editorType: string;
   public editorTypeTemplate: string;
   public baseEditorType: string;
+  public onDependedPropertyUpdateCallback: (propertyName: string) => void;
+  public koVisible: any;
 
   koIsShowEditor = ko.observable(false);
 
@@ -48,6 +49,7 @@ export class SurveyObjectProperty {
     this.editorType = this.editor.editorType;
     this.editorTypeTemplate = this.editor.editorTypeTemplate;
     this.isActive = false;
+    this.koVisible = ko.observable(this.isVisible());
   }
   public get displayName(): string {
     return this.editor.displayName;
@@ -64,7 +66,6 @@ export class SurveyObjectProperty {
     this.koIsShowEditor(
       !this.disabled && (this.editor.alwaysShowEditor || this.isActive)
     );
-    this.editor.activate();
   }
   public get koValue(): any {
     return this.editor.koValue;
@@ -85,9 +86,37 @@ export class SurveyObjectProperty {
   public set object(value: any) {
     this.objectValue = value;
     this.editor.object = value;
+    this.updateDependedProperties();
+    this.updateDynamicProperties();
+  }
+  public updateDynamicProperties() {
+    this.koVisible(this.isVisible());
+    this.editor.updateDynamicProperties();
+  }
+  protected isVisible(): boolean {
+    if (!this.object) return true;
+    var layout = !!this.object.getLayoutType ? this.object.getLayoutType() : "";
+    if (
+      !!this.property.isVisible &&
+      !(<any>this.property["isVisible"])(layout, this.object)
+    )
+      return false;
+    return true;
   }
   protected onEditorValueChanged(newValue) {
-    if (this.onPropertyChanged && this.object)
-      this.onPropertyChanged(this, newValue);
+    if (this.object) {
+      if (!!this.onPropertyChanged) this.onPropertyChanged(this, newValue);
+      if (!!this.onChanged) this.onChanged(newValue);
+    }
+    this.updateDependedProperties();
+  }
+  private updateDependedProperties() {
+    if (!this.object || !this.onDependedPropertyUpdateCallback) return;
+    if (!this.property["getDependedProperties"]) return;
+    var props = this.property["getDependedProperties"]();
+    if (!props) return;
+    for (var i = 0; i < props.length; i++) {
+      this.onDependedPropertyUpdateCallback(props[i]);
+    }
   }
 }

@@ -3,9 +3,8 @@ import * as Survey from "survey-knockout";
 import { SurveyPropertyTextEditor } from "./propertyModalEditor";
 import { SurveyPropertyEditorBase } from "./propertyEditorBase";
 import { SurveyPropertyEditorFactory } from "./propertyEditorFactory";
+import { EditableObject } from "./editableObject";
 import * as editorLocalization from "../editorLocalization";
-import { SurveyValidator } from "survey-knockout";
-import { stringLiteral } from "babel-types";
 
 export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
   public availableOperators = [];
@@ -19,19 +18,24 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
   koAddConditionType: any;
   koShowAddConditionType: any;
   koAddConditionButtonText: any;
+  koCanAddConditionValue: any;
   koAddContionValueEnabled: any;
   koHasValueSurvey: any;
   onConditionAddClick: any;
   koValueSurvey: any;
   private isValueChanging: boolean = false;
   private addConditionQuestionsHash = {};
-  private static emptySurvey = new Survey.Survey();
+  private static emptySurvey = undefined;
   constructor(
     property: Survey.JsonObjectProperty,
     private _type: string = "condition",
     public syntaxCheckMethodName: string = "createCondition"
   ) {
     super(property);
+    if (!SurveyPropertyConditionEditor.emptySurvey) {
+      SurveyPropertyConditionEditor.emptySurvey =
+        !!this.options && this.options.createSurvey({}, "conditionEditor");
+    }
     this.availableOperators = SurveyPropertyEditorFactory.getOperators();
     this.koIsValid = ko.observable(true);
     this.koAddConditionQuestions = ko.observableArray();
@@ -45,6 +49,7 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
     );
     var self = this;
     this.koAddConditionQuestion.subscribe(function(newValue) {
+      self.koAddConditionValue("");
       self.onValueSurveyChanged(newValue, self.koAddConditionOperator());
     });
     this.koAddConditionOperator.subscribe(function(newValue) {
@@ -63,7 +68,7 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
         this.koAddConditionQuestion() != "" &&
         this.koAddConditionQuestion() != undefined &&
         this.koAddConditionOperator() != "" &&
-        (!this.koAddContionValueEnabled() || this.koAddConditionValue() != "")
+        (!this.koCanAddConditionValue() || this.koAddConditionValue() != "")
       );
     }, this);
     this.koShowAddConditionType = ko.computed(function() {
@@ -76,10 +81,13 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
       var name = this.koIsValid()
         ? "conditionButtonAdd"
         : "conditionButtonReplace";
-      return editorLocalization.editorLocalization.getString("pe." + name);
+      return editorLocalization.editorLocalization.getPropertyInEditor(name);
+    }, this);
+    this.koCanAddConditionValue = ko.computed(function() {
+      return self.canShowValueByOperator(self.koAddConditionOperator());
     }, this);
     this.koAddContionValueEnabled = ko.computed(function() {
-      return self.canShowValueByOperator(self.koAddConditionOperator());
+      return self.koCanAddConditionValue() && !self.koHasValueSurvey();
     }, this);
     this.onConditionAddClick = function() {
       self.addCondition();
@@ -88,6 +96,7 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
   }
   public beforeShow() {
     super.beforeShow();
+    this.koAddConditionQuestion("");
     this.addConditionQuestionsHash = {};
     this.koAddConditionQuestions(this.allConditionQuestions);
   }
@@ -95,15 +104,24 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
     return this._type;
   }
   public get availableQuestions(): any[] {
-    if (this.object instanceof Survey.MatrixDropdownColumn) {
-      return this.object.colOwner["survey"].getAllQuestions();
+    var survey = this.getSurvey();
+    return !!survey ? survey.getAllQuestions() : [];
+  }
+  protected getSurvey(): Survey.SurveyModel {
+    if (this.object instanceof Survey.SurveyModel) {
+      return this.getOrigionalSurvey(this.object);
     }
-    return (
-      (this.object &&
-        this.object.survey &&
-        this.object.survey.getAllQuestions()) ||
-      []
-    );
+    if (
+      this.object instanceof Survey.MatrixDropdownColumn &&
+      !!this.object.colOwner
+    )
+      return this.object.colOwner["survey"];
+    if (!!this.object && !!this.object.survey)
+      return this.getOrigionalSurvey(this.object.survey);
+    return null;
+  }
+  private getOrigionalSurvey(survey: Survey.SurveyModel): Survey.SurveyModel {
+    return EditableObject.getOrigionalSurvey(survey);
   }
   public get allConditionQuestions(): any[] {
     var res = this.getConditionQuetions();
@@ -112,11 +130,17 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
     });
     return res;
   }
+  public get isExpressionValid(): boolean {
+    var text = this.koTextValue();
+    if (!text) return false;
+    var runner = new Survey.ConditionRunner(text);
+    return runner.canRun();
+  }
   private getConditionQuetions(): any[] {
     if (!this.object) return [];
     var res = [];
     var questions = this.availableQuestions;
-    if (questions.length > 0 && questions[0]["addConditionObjectsByContext"]) {
+    if (questions.length > 0) {
       for (var i = 0; i < questions.length; i++) {
         if (this.object == questions[i]) continue;
         questions[i].addConditionObjectsByContext(res, this.object);
@@ -128,18 +152,8 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
         }
         this.addConditionQuestionsHash[res[i].name] = res[i].question;
       }
-    } else {
-      //TODO remove old code
-      var names = [];
-      for (var i = 0; i < questions.length; i++) {
-        this.addConditionQuestionNames(questions[i], names);
-      }
-      this.addMatrixColumnsToCondition(names);
-      this.addPanelDynamicQuestionsToCondition(names);
-      for (var i = 0; i < names.length; i++) {
-        res.push({ name: names[i], text: names[i] });
-      }
     }
+    this.addCalculatedValues(res);
     !!this.options &&
       this.options.onConditionQuestionsGetListCallback(
         this.editablePropertyName,
@@ -149,63 +163,20 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
       );
     return res;
   }
-  private addQuestionNames(
-    question: Survey.Question,
-    questionNames: Array<string>,
-    names: Array<string>
-  ) {
-    for (var i = 0; i < questionNames.length; i++) {
-      this.addConditionQuestionsHash[questionNames[i]] = question;
-      names.push(questionNames[i]);
-    }
-  }
-  private addConditionQuestionNames(
-    question: Survey.Question,
-    names: Array<string>
-  ) {
-    if (question == this.object) return;
-    var questionNames = [];
-    question.addConditionNames(questionNames);
-    this.addQuestionNames(question, questionNames, names);
-  }
-  private addMatrixColumnsToCondition(names: Array<string>) {
-    if (
-      !(this.object instanceof Survey.MatrixDropdownColumn) ||
-      !this.object ||
-      !this.object.colOwner ||
-      !this.object.colOwner["columns"]
-    )
-      return;
-    var columns = this.object.colOwner["columns"];
-    for (var i = 0; i < columns.length; i++) {
-      if (columns[i] == this.object) continue;
-      var colName = "row." + columns[i].name;
-      names.push(colName);
-      this.addConditionQuestionsHash[colName] = this.object.colOwner;
-    }
-  }
-  private addPanelDynamicQuestionsToCondition(names: Array<string>) {
-    if (!(this.object.data instanceof Survey.QuestionPanelDynamicItem)) return;
-    var panel: Survey.PanelModel = this.object.data.panel;
-    for (var i = 0; i < panel.questions.length; i++) {
-      var q = panel.questions[i];
-      var questionNames = [];
-      this.addConditionQuestionNames(<Survey.Question>q, questionNames);
-      for (var j = 0; j < questionNames.length; j++) {
-        var questionName = "panel." + questionNames[j];
-        if (q.name != this.object.name) {
-          names.push(questionName);
-        }
-        this.addConditionQuestionsHash[questionName] = q;
-      }
+  private addCalculatedValues(res: Array<any>) {
+    var survey = this.getSurvey();
+    if (!survey) return;
+    var values = survey.calculatedValues;
+    for (var i = 0; i < values.length; i++) {
+      var name = values[i].name;
+      res.push({ name: name, text: name, question: null });
     }
   }
   private onValueSurveyChanged(questionName: string, operator: string) {
     if (
       !this.canShowValueByOperator(operator) ||
       !questionName ||
-      !this.object ||
-      !this.object.survey
+      !this.getSurvey()
     ) {
       this.koHasValueSurvey(false);
       return;
@@ -214,24 +185,38 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
     this.koHasValueSurvey(!!json && !!json.type);
     if (this.koHasValueSurvey()) {
       this.koValueSurvey(this.createValueSurvey(json, questionName));
+      var question = this.koValueSurvey().getQuestionByName("question");
+      if (!!question && !question.isEmpty()) {
+        this.koAddConditionValue(JSON.stringify(question.value));
+      }
     }
+  }
+  private deleteConditionProperties(json: any) {
+    delete json["visible"];
+    delete json["visibleIf"];
+    delete json["enable"];
+    delete json["enableIf"];
   }
   private createValueSurvey(qjson: any, questionName: string): Survey.Survey {
     qjson.name = "question";
     qjson.title = editorLocalization.editorLocalization.getString(
       "pe.conditionValueQuestionTitle"
     );
-    delete qjson["visible"];
-    delete qjson["visibleIf"];
-    delete qjson["enable"];
-    delete qjson["enableIf"];
+    this.deleteConditionProperties(qjson);
+    if (!!qjson.choices) {
+      for (var i = 0; i < qjson.choices.length; i++) {
+        this.deleteConditionProperties(qjson.choices[i]);
+      }
+    }
     var json = {
       questions: [],
       showNavigationButtons: false,
       showQuestionNumbers: "off"
     };
     json.questions.push(qjson);
-    var survey = new Survey.Survey(json);
+    var survey = !!this.options
+      ? this.options.createSurvey(json, "conditionEditor")
+      : new Survey.Survey(json);
     var self = this;
     survey.onValueChanged.add(function(survey, options) {
       if (!self.isValueChanging) {
@@ -251,7 +236,7 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
     return survey;
   }
   private getQuestionByName(questionName: string): Survey.Question {
-    if (!this.object || !this.object.survey) return null;
+    if (!this.getSurvey()) return null;
     return this.addConditionQuestionsHash[questionName];
   }
   private getQuestionValueByName(questionName: string): string {
@@ -302,7 +287,7 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
       this.getQuestionValueByName(this.koAddConditionQuestion()) +
       "} " +
       this.getAddConditionOperator();
-    if (this.koAddContionValueEnabled()) {
+    if (this.koCanAddConditionValue()) {
       text += " " + this.getAddConditionValue();
     }
     this.koTextValue(text);
@@ -329,7 +314,7 @@ export class SurveyPropertyConditionEditor extends SurveyPropertyTextEditor {
     if (!val) return val;
     if (val == "true" || val == "false") return val;
     if (!isNaN(val)) return val;
-    if (val[0] == "[") return val;
+    if (val[0] == "[") return val.replace(/(?!^)(['])(?!$)/g, "\\$1");
     if (!this.isQuote(val[0])) val = "'" + val;
     if (!this.isQuote(val[val.length - 1])) val = val + "'";
     return val.replace(/(?!^)(['"])(?!$)/g, "\\$1");
@@ -477,6 +462,16 @@ var operations = [
     value: "notcontains",
     title:
       "return true if the left operand is an array and it does not contain a value of the second operand"
+  },
+  {
+    value: "anyof",
+    title:
+      "return true if the left operand is an array and it contains any value of the second array operand"
+  },
+  {
+    value: "allof",
+    title:
+      "return true if the left operand is an array and it contains all values of the second array operand"
   }
 ];
 
@@ -569,6 +564,7 @@ export function doGetCompletions(
           identifierRegex: ID_REGEXP
         });
       } else if (
+        !!currentQuestion &&
         currentQuestion.data instanceof Survey.QuestionPanelDynamicItem
       ) {
         completions.push({
@@ -658,7 +654,9 @@ ko.bindingHandlers.aceEditor = {
       //   }
       editor.getSession().setAnnotations(errors);
     });
-
+    editor.on("focus", function() {
+      editor.setReadOnly(objectEditor.readOnly());
+    });
     var updateCallback = () => {
       if (!isUpdating) {
         editor.setValue(objectEditor.koTextValue() || "");

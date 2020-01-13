@@ -5,6 +5,7 @@
   left: 15px;
   text-align: right;
   line-height: 30px;
+  min-width: 500px;
 
   .svda_current_type {
     font-weight: 700;
@@ -39,5 +40,21 @@ question-actions {
   .svda_action_separator {
     margin-left: 15px;
     margin-top: -5px;
+  }
+}
+
+.question_actions.svd_question:hover,
+.panel_actions.svd_question:hover {
+  border-top: 1px solid transparent;
+
+  & > .svda-question-actions {
+    question-actions {
+      display: block;
+    }
+
+    .svda_action_separator {
+      margin-left: 15px;
+      margin-top: -5px;
+    }
   }
 }

@@ -5,11 +5,11 @@ import {
   TranslationItem,
   Translation
 } from "../src/translation";
-import { equal } from "assert";
+import { SurveyCreator } from "../src/editor";
 
 export default QUnit.module("TranslatonTests");
 
-QUnit.test("Text question localization properties", function (assert) {
+QUnit.test("Text question localization properties", function(assert) {
   var question = new Survey.QuestionText("q1");
   var group = new TranslationGroup(question.name, question);
   assert.ok(
@@ -17,7 +17,7 @@ QUnit.test("Text question localization properties", function (assert) {
     "There are four or more localization strings"
   );
 });
-QUnit.test("Text question choices localization", function (assert) {
+QUnit.test("Text question choices localization", function(assert) {
   var question = new Survey.QuestionCheckbox("q1");
   question.choices = ["item1", { value: "item2", text: "text 2" }];
   var group = new TranslationGroup(question.name, question);
@@ -150,6 +150,101 @@ QUnit.test("Do not reset locales on reset", function(assert) {
     "There are still 3 locations"
   );
 });
+QUnit.test("get/set the selected locales", function(assert) {
+  var survey = new Survey.Survey();
+  survey.addNewPage("page1");
+  survey.pages[0].addNewQuestion("checkbox", "question1");
+  var translation = new Translation(survey);
+  translation.addLocale("fr");
+  translation.addLocale("de");
+  translation.addLocale("it");
+  translation.setSelectedLocales(null);
+  assert.deepEqual(
+    translation.getSelectedLocales(),
+    [],
+    "There is no selected locales"
+  );
+  translation.koLocales()[1].koVisible(true);
+  translation.koLocales()[3].koVisible(true);
+  assert.deepEqual(
+    translation.getSelectedLocales(),
+    ["fr", "it"],
+    "There are two selected locales now"
+  );
+  translation.setSelectedLocales(["de", "it"]);
+  assert.deepEqual(
+    translation.getSelectedLocales(),
+    ["de", "it"],
+    "There are two different selected locales now"
+  );
+  assert.equal(
+    translation.koLocales()[1].koVisible(),
+    false,
+    "'fr' is not selected"
+  );
+  assert.equal(
+    translation.koLocales()[2].koVisible(),
+    true,
+    "'de' is selected"
+  );
+  assert.equal(
+    translation.koLocales()[3].koVisible(),
+    true,
+    "'it' is selected"
+  );
+});
+QUnit.test("disable locales", function(assert) {
+  var survey = new Survey.Survey({
+    pages: [
+      {
+        name: "page1",
+        elements: [
+          {
+            type: "checkbox",
+            name: "question1",
+            title: {
+              default: "question 1",
+              fr: "quéstion 1",
+              it: "quéstion 1",
+              es: "quéstion 1"
+            },
+            choices: ["item1", "item2", "item3"]
+          }
+        ]
+      }
+    ]
+  });
+  Survey.surveyLocalization.supportedLocales = ["", "fr"];
+  var translation = new Translation(survey);
+  var locales = translation.koLocales();
+  assert.equal(locales.length, 4, "There are 3 locales");
+  assert.equal(locales[1].koEnabled(), true, "fr is enabled");
+  assert.equal(locales[2].koEnabled(), false, "it is disabled");
+  assert.equal(locales[1].koVisible(), true, "fr is visible");
+  assert.equal(locales[2].koVisible(), false, "it is invisible");
+  Survey.surveyLocalization.supportedLocales = [];
+});
+QUnit.test(
+  "get/set the selected locales with inactive translation tab",
+  function(assert) {
+    var creator = new SurveyCreator();
+    creator.JSON = {
+      questions: [
+        {
+          type: "text",
+          name: "q1",
+          title: { default: "t", de: "de_t", fr: "fr_t", it: "it_d" }
+        }
+      ]
+    };
+    creator.translation.setSelectedLocales(["de", "it"]);
+    assert.deepEqual(
+      creator.translation.getSelectedLocales(),
+      ["de", "it"],
+      "Works without selected toolbox"
+    );
+  }
+);
 QUnit.test("Translation show All strings", function(assert) {
   var survey = new Survey.Survey();
   survey.completedHtml = "Test";

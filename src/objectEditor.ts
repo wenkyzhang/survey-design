@@ -20,10 +20,6 @@ export class SurveyObjectEditor {
     (sender: SurveyObjectEditor, options: any) => any,
     any
   >();
-  public onCanShowPropertyCallback: (
-    object: any,
-    property: Survey.JsonObjectProperty
-  ) => boolean;
   public onSortPropertyCallback: (
     object: any,
     property1: Survey.JsonObjectProperty,
@@ -91,12 +87,17 @@ export class SurveyObjectEditor {
       this.koActiveProperty(null);
       return;
     }
-    var properties = Survey.JsonObject.metaData["getPropertiesByObj"]
-      ? Survey.JsonObject.metaData["getPropertiesByObj"](this.selectedObject)
-      : Survey.JsonObject.metaData.getProperties(this.selectedObject.getType());
+    var properties = Survey.Serializer.getPropertiesByObj(this.selectedObject);
     var objectProperties = [];
     var self = this;
     var propEvent = (property: SurveyObjectProperty, newValue: any) => {
+      if (
+        property.property.isRequired &&
+        Survey.Helpers.isValueEmpty(newValue)
+      ) {
+        property.koValue(property.object[property.name]);
+        return;
+      }
       var options = {
         property: property.property,
         object: property.object,
@@ -137,6 +138,11 @@ export class SurveyObjectEditor {
         this.propertyEditorOptions
       );
       objectProperty.editor.isInplaceProperty = true;
+      objectProperty.onDependedPropertyUpdateCallback = function(
+        propName: string
+      ) {
+        self.updatePropertyEditor(propName);
+      };
       objectProperties.push(objectProperty);
     }
     objectProperties.sort(sortEvent);
@@ -149,11 +155,18 @@ export class SurveyObjectEditor {
       this.koActiveProperty(propEditor);
     }
   }
+  private updatePropertyEditor(propName: string) {
+    var propEd = this.getPropertyEditor(propName);
+    if (!!propEd) {
+      propEd.object = this.selectedObject;
+      propEd.updateDynamicProperties();
+    }
+  }
   protected canShowProperty(property: Survey.JsonObjectProperty): boolean {
     return SurveyHelper.isPropertyVisible(
       this.selectedObject,
       property,
-      this.onCanShowPropertyCallback
+      this.propertyEditorOptions
     );
   }
   protected updatePropertiesObject() {

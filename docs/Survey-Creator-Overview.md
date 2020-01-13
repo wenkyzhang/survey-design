@@ -83,17 +83,18 @@ There are several options that you may set to change the Survey Creator behavior
 |_showTestSurveyTab: false,_|Set this option to false to hide the Survey Test Tab.|
 |_showEmbededSurveyTab: true,_|Set this option to true to show the Survey Embedded Tab. This tab is hidden by default. It shows how to integrate the survey into another web page.|
 |_showTranslationTab: true,_|Set this option to true to show the Translation Tab. This tab is hidden by default. It allows to edit all localizable strings for several languages on one page. It allows to import/export into from csv file.|
+|_showLogicTab: true,_|Set this option to true to show the Logic Tab. This tab is hidden by default. It allows to view and edit the survey logic (expressions) in one place.|
 |_showPropertyGrid: false,_|Set this option to false to hide the property grid on the right. It is shown by default.|
 |_questionTypes: ["text", "checkbox", "radiogroup", "dropdown"],_|Use this option to define question types you want to see on the Toolbox. Go to [Customize Toolbox](#toolbox) section to get more information.|
 |_isAutoSave: true,_|Set this options to true and Survey Creator will call the "save callback" function on every change. By default, the "Save" button is shown. For more information, please go to [Load and Save Survey](#loadsavesurvey) section.|
 |_isRTL: true,_|Set this options to true for Right-to-Left web sites.|
-|_designerHeight: 1200px,_|Set the designer heigth to the specific value.|
+|_designerHeight: '1200px',_|Set the designer heigth to the specific value.|
 |_showPagesToolbox: false,_|If you are going to allow your users creating only one page surveys, then set this property to false. It will hide the pages toolbox.|
 |_useTabsInElementEditor: true,_|If you want to tabs instead of accordion in the element popup editor, then set this property to true. It will change accordion to tab control.|
 |_showState: false,_|Set it to true to show the state in the toolbar (saving/saved).|
 |_showPagesInTestSurveyTab: false,_|Set this property to false to hide the page selector in the "Test Survey" tab.|
 |_showPagesInTestSurveyTab: false,_|Set this property to false to hide the page selector in the "Test Survey" tab.|
-|_showDefaultLanguageInTestSurveyTab: false,_|Set this property to false to hide the language selector in the "Test Survey" tab.|
+|_showDefaultLanguageInTestSurveyTab: "auto",_|Before v1.1.3 the default value was _true_. The language selector was visible by default and allows to select all available languages. You could set this property to _false_ to hide it. Since v1.1.3 the behavior has been changed. The default value is _"auto"_ and the selector is visible when there are more than one language in at least one localizable string in the survey. If you set it to _true_ or _"all"_ it will be shown always. Setting it to _"all"_ will display all available languages (30+) in the selector, while _"auto"_ and _true_ only languages that are used in the current survey. Set it to _false_ to hide the language selector.|
 |_showInvisibleElementsInTestSurveyTab: false_|Set this property to false to hide the checkbox, that allow to show invsible elements: questions/panels/pages in the "Test Survey" tab.|
 |_};_||
 
@@ -218,7 +219,7 @@ The following themes are available:
 You may change any our theme. Please review [this demo](https://surveyjs.io/Examples/Survey-Creator?id=editor-custom-theme) to see how to do it.
 
 <div id="toolbox"></div>
-            
+
 ## Customize Toolbox
 
 You may fully customize Toolbox as you want. You may add/remove any item on it (question/panel types), change items names and icons, the generated json and categories and so on.
@@ -315,6 +316,14 @@ You may change the name of the default (General) category as any other localizab
 ```javascript
 SurveyCreator.defaultStrings.ed.toolboxGeneralCategory = "Common";
 ```
+
+To allow expaned more then one category, set the property **allowExpandMultipleCategories** to true.
+If you want to keep all your categories always expanded, then set the following property **keepAllCategoriesExpanded** property to true.
+```javascript
+creator.toolbox.allowExpandMultipleCategories = true;
+creator.toolbox.keepAllCategoriesExpanded = true;` 
+```
+
 Please go to the [Survey Toolbox categories example](https://surveyjs.io/Examples/Survey-Creator/?id=toolboxcategories) to see how it works.
 
 <div id="toolbox-property"></div>
@@ -461,21 +470,21 @@ There is a difference between removing and hiding. If you remove the property, t
 Here is the example of removing the description and choicesUrl properties
 ```javascript
 //remove a property from the question class and as result from all questions
-Survey.JsonObject.metaData.removeProperty("question", "description");
+Survey.Serializer.removeProperty("question", "description");
 //remove choicesByUrl from checkbox, dropdown and radiogroup questions
-Survey.JsonObject.metaData.removeProperty("selectbase", "choicesUrl");
+Survey.Serializer.removeProperty("selectbase", "choicesUrl");
 ```
 
 You may make these properties invisible in Survey Creator and still be able to load/save them in JSON by setting their visible property to false
 ```javascript
 //make a property, from the question class and as result from all questions, invisible
-Survey.JsonObject.metaData.findProperty("question", "description").visible = false;
+Survey.Serializer.findProperty("question", "description").visible = false;
 //make choicesByUrl property from checkbox, dropdown and radiogroup questions invisible
-Survey.JsonObject.metaData.findProperty("selectbase", "choicesUrl").visible = false;
+Survey.Serializer.findProperty("selectbase", "choicesUrl").visible = false;
 ```
-This work perfect, if you need to hide several properties. If the list of properties you want to make invisible is large, you may use survey **onCanShowProperty** event.
+This work perfect, if you need to hide several properties. If the list of properties you want to make invisible is large, you may use survey **onShowingProperty** event.
 ```javascript
-surveyCreator.onCanShowProperty.add(function (sender, options) {
+surveyCreator.onShowingProperty.add(function (sender, options) {
     //check options.obj.getType() if needed. if (options.obj.getType() == "survey")
     options.canShow = myBlackList.indexOf(options.property.name) < 0; //show if it is not in a blacklist
     //You may do opposite and use the white list
@@ -500,17 +509,17 @@ Let’s review several examples
 ```javascript
 //add a property to the base question class and as result to all questions
 //It has name: "tag", type "number" and the default value is 0
-Survey.JsonObject.metaData.addProperty("question", { name: "tag:number", default: 0 });
-//Survey.JsonObject.metaData.addProperty("question", { name: "tag", type: "number" default: 0 });
+Survey.Serializer.addProperty("question", { name: "tag:number", default: 0 });
+//Survey.Serializer.addProperty("question", { name: "tag", type: "number" default: 0 });
 //you may set the type using this decrlaration as well
 //The following code adds a description property to the survey. The property type is html.
 //It means that html property editor is used to set its value in the Survey Creator
-Survey.JsonObject.metaData.addProperty("survey", "description:html");
+Survey.Serializer.addProperty("survey", "description:html");
 //Add a colour string property into page.
 //The user will be able to select only predefined values from the dropdown
 //The default property type is "string", we may not set it.
 //The default value is not set and it is undefined by default.
-Survey.JsonObject.metaData.addProperty("survey", {name: "color", choices: ["blue", "red", "green"] });
+Survey.Serializer.addProperty("survey", {name: "color", choices: ["blue", "red", "green"] });
 ```
 
 Here is the available attributes and callback functions in the property definition
@@ -542,6 +551,37 @@ It is an optional attribute. It makes sense for string and numeric property type
 //returns the supported languages in the surveyjs library.
 { name: "locale", choices: function() { return Survey.surveyLocalization.getLocales(); } }
 ```
+From v1.0.94, you can get the choices from the web. Here is the example of adding the "country" getting its values from web service.
+```javascript
+//It uses rest full service and choicesCallback function to tell property editor that choices are loaded from the web
+Survey.Serializer.addProperty("survey", { name: "country", choices: function(obj, choicesCallback) {
+    //We are going to use choicesCallback here
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "https://restcountries.eu/rest/v2/all");
+    xhr.setRequestHeader(
+    "Content-Type",
+    "application/x-www-form-urlencoded"
+    );
+    //on load event set results into array of ItemValue and tell the Survey Creator that choices are loaded.
+    xhr.onload = function() {
+    if (xhr.status === 200) {
+        var serverRes = JSON.parse(xhr.response);
+        var res = [];
+        //We will use ItemValue array here, since we want to have value different from display text
+        //If your value equals to display text, then you may simply return the array of strings.
+        res.push({ value: null });
+        for (var i = 0; i < serverRes.length; i++) {
+        var item = serverRes[i];
+        res.push({ value: item.alpha2Code, text: item.name });
+        }
+        //return the result into Survey Creator property editor
+        choicesCallback(res);
+    }
+    };
+  xhr.send();
+}
+});
+```
 ---
 **isRequired**
 
@@ -558,14 +598,134 @@ An optional Boolean property. If you do not want to serialize this property into
 An optional Boolean property. By default, it is true. Set it to false, if you want to hide this property from the Survey Creator
 
 ---
+**visibleIf**
+
+Available since v1.0.94. It is a function that has an obj parameter, the editing object. It should return the boolean value: true to show the property and false to hide the property. If the property depends on another property value, then use **dependsOn**. On changing any property from the **dependsOn** array, the visibleIf function will be called to check, if it returns other value then before. Here is the example:
+```javascript
+//This property depends on date format property of text question
+//It is visible if inputFormat property equals to "date*" values
+Survey.Serializer.addProperty("text", {
+  name: "dateFormat",
+  dependsOn: ["inputType"],
+  visibleIf: function(obj) {
+    return (
+      obj.inputType == "date" ||
+      obj.inputType == "datetime" ||
+      obj.inputType == "datetime-local"
+    );
+  }
+});
+```
+---
 **readOnly**
 
 An optional Boolean property. By default, it is false. Set it to true, if you want to make this property disabled in the Survey Creator inputs. 
 
 The following code makes the choices and matrix rows/columns value property read-only.
 ```javascript
-Survey.JsonObject.metaData.findProperty('itemvalue', "value").readOnly = true;
+Survey.Serializer.findProperty('itemvalue', "value").readOnly = true;
 ```
+---
+**maxLength**
+
+An optional numeric property. It works for string and text properties. It limits the string length that user can enter in the property editor.
+
+The following code limits the size of the question name, that user may enter, to 20.
+```javascript
+Survey.Serializer.findProperty('question', "name").maxLength = 20;
+```
+
+---
+**maxValue** and **minValue**
+
+An optional numeric properties. They work for number properties. They limit the number value that user can enter in the property editor.
+
+The following code add a custom property into question and limits the value of this property between 0 and 100.
+```javascript
+Survey.Serializer.addProperty("question", {
+      name: "cost:number",
+      default: 5,
+      minValue: 0,
+      maxValue: 100
+    });
+```
+
+---
+**dependsOn**
+
+Available since v1.0.94. An optional array of strings. It contains properties names. You may use it together with visibleIf and choices attributes, where choices is a function and not a static array. If any property from this list is changed, then property editor calls visibleIf and choices functions to check if they return other values.
+
+The following code creates two new properties. The choices of the second property fully depends on property value of the first property.
+```javascript
+Survey.Serializer.addProperty("question", {
+  name: "targetEntity",
+  choices: ["", "Account", "Developement"]
+});
+//This property depends from targetEntity property.
+//If targetEntity property is empty then choices for targetField are empty as well.
+Survey.Serializer.addProperty("question", {
+  name: "targetField",
+  dependsOn: "targetEntity",
+  choices: function(obj) {
+    var choices = [];
+    var entity = !!obj ? obj.targetEntity : null;
+    //If targetEntity is empty then return the empty array
+    if (!entity) return choices;
+    //The correct way to set the nullable value
+    choices.push({ value: null });
+    choices.push(entity + " 1");
+    choices.push(entity + " 2");
+    choices.push(entity + " 3");
+    return choices;
+  }
+});
+```
+This example is more complicated, since the second property retrieves its choices from a web service. And again, the second property choices depends on property value of the first proeprty.
+```javascript
+Survey.Serializer.addProperty("survey", {
+  name: "region",
+  choices: ["Africa", "Americas", "Asia", "Europe", "Oceania"]
+});
+//This property country depends on the selected region.
+//It allows to select all countries if region is empty or if it is not empty, only countries from this region
+//It uses rest full service and choicesCallback function to tell property editor that loading choices from the web service is completed
+Survey.Serializer.addProperty("survey", {
+  name: "country",
+  dependsOn: "region",
+  choices: function(obj, choicesCallback) {
+    //We are going to use choicesCallback here
+    var xhr = new XMLHttpRequest();
+    //if region is empty then get all countries, otherwise get coutries by region.
+    var url =
+      !!obj && !!obj.region
+        ? "https://restcountries.eu/rest/v2/region/" + obj.region
+        : "https://restcountries.eu/rest/v2/all";
+    xhr.open("GET", url);
+    xhr.setRequestHeader(
+      "Content-Type",
+      "application/x-www-form-urlencoded"
+    );
+    //on load event set results into array of ItemValue and tell the Survey Creator that choices are loaded.
+    xhr.onload = function() {
+      if (xhr.status === 200) {
+        var serverRes = JSON.parse(xhr.response);
+        var res = [];
+        //We will use ItemValue array here, since we want to have value different from display text
+        res.push({ value: null });
+        for (var i = 0; i < serverRes.length; i++) {
+          var item = serverRes[i];
+          res.push({ value: item.alpha2Code, text: item.name });
+        }
+        //return the result into Survey Creator property editor
+        choicesCallback(res);
+      }
+    };
+    xhr.send();
+  }
+});
+```
+
+
 ---
 **onGetValue**
 
@@ -597,10 +757,13 @@ Avaliable property types. Every property type has a correspondet Property Editor
 |---|---|
 |string|It is the default value type. Property editor is a text input. "myProperty" and "myProperty:string" - give the same result.|
 |boolean|Boolean type. Property editor is a checkbox.|
+|condition|It shows property editor that helps to build a boolean expression for properties like **visibleIf** and **enabledIf**|
+|expression|It shows property editor that helps to build the expression|
 |number|Numeric type. Property editor is a text input|
-|text||String type. Property editor is text input with an optional modal window for entering large text|
+|text|String type. Property editor is text input with an optional modal window for entering large text|
 |html|string type. Property editor is text input with an optional modal window for entering large text. In the future modal window becomes a very simple html editor.|
 |itemvalues|Array of ItemValue object. ItemValue object has two properties {value: any, text: string}. Dropdown, checkbox and radiogroup questions has choices property with itemvalues type.|
+|value|any type. Property Editor for defaultValue and correctValue properties. It shows a survey with the only one current question.|
 |matrixdropdowncolumns|Columns for matrixdropdown and matrixdynamic questions|
 |textitems|items property of multiple text question has this type|
 |triggers|Survey triggers property has this type|

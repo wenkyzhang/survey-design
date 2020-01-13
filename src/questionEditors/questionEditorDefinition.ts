@@ -3,7 +3,7 @@ import * as Survey from "survey-knockout";
 export interface ISurveyQuestionEditorDefinition {
   title?: string;
   properties?: Array<
-    string | { name: string; category?: string; tab?: string }
+    string | { name: string; title?: string; category?: string; tab?: string }
   >;
   tabs?: Array<{
     name: string;
@@ -21,6 +21,7 @@ export class SurveyQuestionEditorDefinition {
       properties: [
         "name",
         "title",
+        "description",
         { name: "visible", category: "checks" },
         { name: "isRequired", category: "checks" },
         { name: "startWithNewLine", category: "checks" }
@@ -56,7 +57,11 @@ export class SurveyQuestionEditorDefinition {
     matrixdynamic: {
       properties: ["rowCount", "addRowLocation", "addRowText", "removeRowText"]
     },
+    matrixdropdown: {
+      properties: ["totalText"]
+    },
     matrix: {
+      properties: ["isAllRowRequired"],
       tabs: [{ name: "columns", index: 10 }, { name: "rows", index: 11 }]
     },
     multipletext: {
@@ -64,7 +69,13 @@ export class SurveyQuestionEditorDefinition {
       tabs: [{ name: "items", index: 10 }]
     },
     rating: {
-      properties: ["minRateDescription", "maxRateDescription"],
+      properties: [
+        "rateMin",
+        "rateMax",
+        "rateStep",
+        "minRateDescription",
+        "maxRateDescription"
+      ],
       tabs: [{ name: "rateValues", index: 10 }]
     },
     selectbase: {
@@ -76,7 +87,8 @@ export class SurveyQuestionEditorDefinition {
       ],
       tabs: [
         { name: "choices", index: 10 },
-        { name: "choicesByUrl", index: 11 }
+        { name: "choicesByUrl", index: 11 },
+        { name: "validators", index: 200 }
       ]
     },
     "itemvalue[]@choices": {
@@ -101,94 +113,130 @@ export class SurveyQuestionEditorDefinition {
         { name: "visibleIf", visible: true }
       ]
     },
-    checkbox: {},
+    checkbox: {
+      properties: [
+        { name: "hasSelectAll", tab: "choices" },
+        { name: "selectAllText", tab: "choices" },
+        { name: "hasNone", tab: "choices" },
+        { name: "noneText", tab: "choices" }
+      ]
+    },
     radiogroup: {},
     dropdown: {
-      properties: ["optionsCaption"]
+      properties: [
+        "optionsCaption",
+        { name: "choicesMin", tab: "choices" },
+        { name: "choicesMax", tab: "choices" },
+        { name: "choicesStep", tab: "choices" }
+      ]
     },
     text: {
-      properties: ["inputType", "placeHolder"]
+      properties: ["inputType", "placeHolder"],
+      tabs: [{ name: "validators", index: 200 }]
     },
     boolean: {
       properties: ["label"]
     },
     expression: {
-      properties: ["currency", "displayStyle"],
+      properties: ["currency", "displayStyle", "format"],
       tabs: [{ name: "expression", index: 10 }]
     },
     matrixdropdowncolumn: {
-      properties: ["isRequired", "cellType", "name", "title"]
+      properties: [
+        "isRequired",
+        "cellType",
+        "name",
+        "title",
+        { name: "totalType", tab: "totals" },
+        { name: "totalDisplayStyle", tab: "totals" },
+        { name: "totalCurrency", tab: "totals" },
+        { name: "totalFormat", tab: "totals" },
+        { name: "totalExpression", tab: "totals" }
+      ]
     },
     "matrixdropdowncolumn@default": {
+      properties: ["width"],
       tabs: [
         { name: "general", visible: false },
         { name: "visibleIf", index: 12 },
         { name: "enableIf", index: 20 },
-        { name: "requiredIf", index: 30 }
+        { name: "requiredIf", index: 30 },
+        { name: "totals", index: 40 }
       ]
     },
     "matrixdropdowncolumn@checkbox": {
-      properties: ["hasOther", "otherText", "choicesOrder", "colCount"],
+      properties: ["hasOther", "otherText", "choicesOrder", "colCount", "width"],
       tabs: [
         { name: "choices", index: 10 },
         { name: "choicesByUrl", index: 11 },
         { name: "visibleIf", index: 12 },
         { name: "enableIf", index: 20 },
-        { name: "requiredIf", index: 30 }
+        { name: "requiredIf", index: 30 },
+        { name: "totals", index: 40 }
       ]
     },
     "matrixdropdowncolumn@radiogroup": {
-      properties: ["hasOther", "otherText", "choicesOrder", "colCount"],
+      properties: ["hasOther", "otherText", "choicesOrder", "colCount", "width"],
       tabs: [
         { name: "choices", index: 10 },
         { name: "choicesByUrl", index: 11 },
         { name: "visibleIf", index: 12 },
         { name: "enableIf", index: 20 },
-        { name: "requiredIf", index: 30 }
+        { name: "requiredIf", index: 30 },
+        { name: "totals", index: 40 }
       ]
     },
     "matrixdropdowncolumn@dropdown": {
-      properties: ["hasOther", "otherText", "choicesOrder", "optionsCaption"],
+      properties: ["hasOther", "otherText", "choicesOrder", "optionsCaption", "width"],
       tabs: [
         { name: "choices", index: 10 },
         { name: "choicesByUrl", index: 11 },
         { name: "visibleIf", index: 12 },
         { name: "enableIf", index: 20 },
-        { name: "requiredIf", index: 30 }
+        { name: "requiredIf", index: 30 },
+        { name: "totals", index: 40 }
       ]
     },
     "matrixdropdowncolumn@text": {
-      properties: ["inputType", "placeHolder", "maxLength"],
+      properties: ["inputType", "placeHolder", "maxLength", "width"],
       tabs: [
         { name: "validators", index: 10 },
         { name: "visibleIf", index: 12 },
         { name: "enableIf", index: 20 },
-        { name: "requiredIf", index: 30 }
+        { name: "requiredIf", index: 30 },
+        { name: "totals", index: 40 }
       ]
     },
     "matrixdropdowncolumn@comment": {
-      properties: ["rows", "placeHolder", "maxLength"],
+      properties: ["rows", "placeHolder", "maxLength", "width"],
       tabs: [
         { name: "validators", index: 10 },
         { name: "visibleIf", index: 12 },
         { name: "enableIf", index: 20 },
-        { name: "requiredIf", index: 30 }
+        { name: "requiredIf", index: 30 },
+        { name: "totals", index: 40 }
       ]
     },
     "matrixdropdowncolumn@boolean": {
-      properties: ["defaultValue"],
+      properties: ["defaultValue", "width"],
       tabs: [
         { name: "visibleIf", index: 12 },
         { name: "enableIf", index: 20 },
-        { name: "requiredIf", index: 30 }
+        { name: "requiredIf", index: 30 },
+        { name: "totals", index: 40 }
       ]
     },
     "matrixdropdowncolumn@expression": {
-      properties: ["name", "displayStyle", "currency"],
-      tabs: [{ name: "expression", index: 10 }]
+      properties: ["name", "displayStyle", "currency", "width"],
+      tabs: [{ name: "expression", index: 10 }, { name: "totals", index: 40 }]
     },
     multipletextitem: {
-      properties: ["inputType", "maxLength", "placeHolder"],
+      properties: [
+        "inputType",
+        "maxLength",
+        "placeHolder",
+        "requiredErrorText"
+      ],
       tabs: [{ name: "validators", index: 10 }]
     },
     paneldynamic: {
@@ -209,6 +257,7 @@ export class SurveyQuestionEditorDefinition {
       properties: [
         "name",
         "title",
+        "description",
         { name: "visible", category: "checks" },
         "questionsOrder"
       ],
@@ -217,6 +266,7 @@ export class SurveyQuestionEditorDefinition {
     survey: {
       properties: [
         "title",
+        "description",
         "showTitle",
         "locale",
         "mode",
@@ -264,8 +314,10 @@ export class SurveyQuestionEditorDefinition {
         { name: "navigation", index: 10 },
         { name: "question", index: 20 },
         { name: "completedHtml", index: 70 },
+        { name: "completedHtmlOnCondition", index: 75 },
         { name: "loadingHtml", index: 80 },
         { name: "timer", index: 90 },
+        { name: "calculatedValues", index: 95 },
         { name: "triggers", index: 100 }
       ]
     }
@@ -275,7 +327,7 @@ export class SurveyQuestionEditorDefinition {
     var allDefinitions = SurveyQuestionEditorDefinition.getAllDefinitionsByClass(
       className
     );
-    for (var i = allDefinitions.length - 1; i >= 0; i--) {
+    for (var i = 0; i < allDefinitions.length; i++) {
       var def = allDefinitions[i];
       if (def.properties) {
         for (var j = 0; j < def.properties.length; j++) {
@@ -290,11 +342,17 @@ export class SurveyQuestionEditorDefinition {
     }
     return properties;
   }
+  public static hasTabsToShow(className: string): boolean {
+    return (
+      SurveyQuestionEditorDefinition.isGeneralTabVisible(className) ||
+      SurveyQuestionEditorDefinition.getTabs(className).length > 0
+    );
+  }
   public static isGeneralTabVisible(className: string): boolean {
     var allDefinitions = SurveyQuestionEditorDefinition.getAllDefinitionsByClass(
       className
     );
-    for (var i = allDefinitions.length - 1; i >= 0; i--) {
+    for (var i = 0; i < allDefinitions.length; i++) {
       var def = allDefinitions[i];
       if (def.tabs) {
         for (var j = 0; j < def.tabs.length; j++) {
@@ -311,7 +369,7 @@ export class SurveyQuestionEditorDefinition {
       className
     );
     var tabsNamesHash = {};
-    for (var i = 0; i < allDefinitions.length; i++) {
+    for (var i = allDefinitions.length - 1; i >= 0; i--) {
       var def = allDefinitions[i];
       if (def.tabs) {
         for (var j = 0; j < def.tabs.length; j++) {
@@ -340,15 +398,28 @@ export class SurveyQuestionEditorDefinition {
       result.push(SurveyQuestionEditorDefinition.definition[className]);
       return result;
     }
-    while (className) {
+    var curClassName = className;
+    while (curClassName) {
       var metaClass = <Survey.JsonMetadataClass>(
-        Survey.JsonObject.metaData["findClass"](className)
+        Survey.Serializer.findClass(curClassName)
       );
       if (!metaClass) break;
       if (SurveyQuestionEditorDefinition.definition[metaClass.name]) {
-        result.push(SurveyQuestionEditorDefinition.definition[metaClass.name]);
+        result.unshift(
+          SurveyQuestionEditorDefinition.definition[metaClass.name]
+        );
       }
-      className = metaClass.parentName;
+      curClassName = metaClass.parentName;
+    }
+    if (result.length == 0) {
+      var properties = Survey.Serializer.getProperties(className);
+      var classRes = { properties: [] };
+      for (var i = 0; i < properties.length; i++) {
+        if (properties[i].isVisible(null)) {
+          classRes.properties.push(properties[i].name);
+        }
+      }
+      result.push(classRes);
     }
     return result;
   }

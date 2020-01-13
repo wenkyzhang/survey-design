@@ -23,13 +23,13 @@ test(`showJSONEditorTab`, async t => {
     editor.toolbox.addItem(itemAsJson);
   });
   const getTestTab = Selector(
-    () => document.querySelectorAll(".svd_container ul li:nth-child(3)")[0]
+    () => document.querySelectorAll(".svd_container ul li:nth-child(2)")[0]
   );
 
   await addItem();
 
   const tab = await getTestTab();
-  const dropdown = Selector("#surveyjsExample select").nth(2);
+  const dropdown = Selector("#surveyjsExample select").nth(3);
   const optionCuba = dropdown.find("option[value=Cuba]");
 
   await t

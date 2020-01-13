@@ -1,3 +1,9 @@
+@import "../colors";
+
+.svda-adorner-root {
+  max-width: 100%;
+}
+
 .item_editable {
   pointer-events: all;
   cursor: text;
@@ -48,12 +54,20 @@
     text-decoration: underline;
   }
 }
+.svda-add-custom-item {
+  color: $primary-color;
+  & > span {
+    vertical-align: middle;
+    display: inline-block;
+  }
+}
 .svd_q_selected .svda-add-new-item {
   display: inline-block;
 }
 
 item-editor {
   display: inline-block;
+  max-width: 90%;
 
   .svda-content {
     position: relative;
@@ -61,6 +75,9 @@ item-editor {
 
     .svda-title-editor-content {
       white-space: nowrap;
+      & > input {
+        max-width: 100%;
+      }
     }
     .svda-edit-button {
       padding-left: 5px;

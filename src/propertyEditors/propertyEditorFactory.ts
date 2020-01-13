@@ -18,6 +18,8 @@ export class SurveyPropertyEditorFactory {
       "notequal",
       "contains",
       "notcontains",
+      "anyof",
+      "allof",
       "greater",
       "less",
       "greaterorequal",
@@ -45,6 +47,9 @@ export class SurveyPropertyEditorFactory {
   public static registerCustomEditor(name: string, widgetJSON: any) {
     SurveyPropertyEditorFactory.widgetRegisterList[name] = widgetJSON;
   }
+  public static unregisterCustomEditor(name: string) {
+    delete SurveyPropertyEditorFactory.widgetRegisterList[name];
+  }
   public static createEditor(
     property: Survey.JsonObjectProperty,
     func: (newValue: any) => any
@@ -67,10 +72,7 @@ export class SurveyPropertyEditorFactory {
     if (!propertyEditor) {
       if (
         property.isArray &&
-        Survey.JsonObject.metaData.isDescendantOf(
-          property.className,
-          "itemvalue"
-        )
+        Survey.Serializer.isDescendantOf(property.className, "itemvalue")
       ) {
         var creator = SurveyPropertyEditorFactory.creatorList["itemvalue[]"];
         if (creator) propertyEditor = creator(property);
@@ -101,12 +103,12 @@ export class SurveyPropertyEditorFactory {
   private static findParentCreator(
     name: string
   ): (property: Survey.JsonObjectProperty) => SurveyPropertyEditorBase {
-    var jsonClass = Survey.JsonObject.metaData.findClass(name);
+    var jsonClass = Survey.Serializer.findClass(name);
     while (jsonClass && jsonClass.parentName) {
       var creator =
         SurveyPropertyEditorFactory.creatorByClassList[jsonClass.parentName];
       if (creator) return creator;
-      jsonClass = Survey.JsonObject.metaData.findClass(jsonClass.parentName);
+      jsonClass = Survey.Serializer.findClass(jsonClass.parentName);
     }
     return SurveyPropertyEditorFactory.creatorList[
       SurveyPropertyEditorFactory.defaultEditor
@@ -131,9 +133,9 @@ export class SurveyDropdownPropertyEditor extends SurveyPropertyEditorBase {
     this.koHasFocus = ko.observable(false);
     var self = this;
     this.koHasFocus.subscribe(function(newValue) {
+      //TODO isDynamicChoices obsolete, use dependsOn attribute
       if (newValue && self.property["isDynamicChoices"]) {
-        //TODO
-        self.koChoices(self.getLocalizableChoices());
+        self.updateChoices();
       }
     });
   }
@@ -149,6 +151,7 @@ export class SurveyDropdownPropertyEditor extends SurveyPropertyEditorBase {
       let text = editorLocalization.getString("qt." + value);
       if (text) return text;
     }
+    if (value === null) return null;
     return editorLocalization.getPropertyValue(value);
   }
   public setObject(value: any) {
@@ -159,12 +162,22 @@ export class SurveyDropdownPropertyEditor extends SurveyPropertyEditorBase {
     }
     this.endValueUpdating();
   }
-  public updateChoices() {
-    this.koChoices(this.getLocalizableChoices());
+  public updateDynamicProperties() {
+    super.updateDynamicProperties();
+    this.updateChoices();
   }
-  private getLocalizableChoices() {
+  public updateChoices() {
     var choices = this.getPropertyChoices();
-    if (!choices || choices.length == 0) return [];
+    this.setChoices(choices);
+  }
+  private setChoices(choices: Array<Survey.ItemValue>) {
+    choices = this.makeChoicesLocalizable(choices);
+    if (!!choices && Array.isArray(choices)) {
+      this.koChoices(choices);
+    }
+  }
+  private makeChoicesLocalizable(choices: Array<Survey.ItemValue>) {
+    if (!choices) return choices;
     var res = new Array<Survey.ItemValue>();
     Survey.ItemValue.setData(res, choices);
     for (var i = 0; i < res.length; i++) {
@@ -186,7 +199,12 @@ export class SurveyDropdownPropertyEditor extends SurveyPropertyEditorBase {
         return obj[name];
       };
     }
-    return this.property.getChoices(this.object);
+    var self = this;
+    return (<any>this.property["getChoices"])(this.object, function(
+      choices: any
+    ) {
+      self.setChoices(choices);
+    });
   }
 }
 export class SurveyBooleanPropertyEditor extends SurveyPropertyEditorBase {
@@ -219,7 +237,7 @@ export class SurveyNumberPropertyEditor extends SurveyPropertyEditorBase {
       value = Number(value);
       if (!value) value = 0;
     }
-    return value;
+    return super.getCorrectedValue(value);
   }
 }
 

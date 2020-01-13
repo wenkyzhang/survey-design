@@ -75,10 +75,9 @@ export class SurveyPropertyModalEditor extends SurveyPropertyEditorBase {
       this.koTitleCaption(
         editorLocalization
           .getString("pe.editProperty")
-          ["format"](this.property.name)
+          ["format"](editorLocalization.getPropertyName(this.property.name))
       );
     }
-    var name = property ? property.name : "";
     this.modalName =
       "modelEditor" + this.editorType + SurveyPropertyModalEditor.idCounter;
     SurveyPropertyModalEditor.idCounter++;

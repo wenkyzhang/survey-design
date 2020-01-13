@@ -19,7 +19,7 @@ class ImageItemInplaceEditor {
     private rootElement,
     private editor: SurveyCreator,
     private itemsRoot
-  ) {}
+  ) { }
 
   deleteItem(model: ImageItemInplaceEditor, event) {
     if (model.question.choices.length > 1) {
@@ -71,7 +71,7 @@ ko.components.register("image-item-editor", {
         params.editor,
         params.itemsRoot
       );
-      var property = Survey.JsonObject.metaData.findProperty(
+      var property = Survey.Serializer.findProperty(
         "imageitemvalue", //params.target.getType(),
         params.name
       );
@@ -80,7 +80,7 @@ ko.components.register("image-item-editor", {
         params.editor.uploadFiles(files, (_, link) => {
           var options = {
             propertyName: property.name,
-            obj: params.model,
+            obj: params.item,
             value: link,
             newValue: null,
             doValidation: false
@@ -89,6 +89,7 @@ ko.components.register("image-item-editor", {
           link = options.newValue === null ? options.value : options.newValue;
           params.target[params.name] = link;
           params.editor.onPropertyValueChanged(property, params.target, link);
+          params.editor.onQuestionEditorChanged(params.question);
         });
       };
       return model;
@@ -146,6 +147,28 @@ export var imageItemsAdorner = {
       }
     });
 
+    var input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*";
+    input.className = "svda-choose-file";
+    input.style.position = "absolute";
+    input.style.opacity = "0";
+    itemsRoot.appendChild(input);
+  }
+};
+
+registerAdorner("image-items", imageItemsAdorner);
+
+export var addImageItemAdorner = {
+  getMarkerClass: model => {
+    return typeof model.getType === "function" &&
+      model.getType() === "imagepicker"
+      ? "sv_imagepicker_root"
+      : "";
+  },
+  getElementName: model => "root",
+  afterRender: (elements: HTMLElement[], model: QuestionSelectBase, editor) => {
+    var itemsRoot = elements[0];
     var addItemElement = createAddItemElement(() => {
       var fileInput = <HTMLInputElement>(
         itemsRoot.getElementsByClassName("svda-choose-file")[0]
@@ -191,7 +214,7 @@ export var imageItemsAdorner = {
           model.choices
         );
 
-        var property = Survey.JsonObject.metaData.findProperty(
+        var property = Survey.Serializer.findProperty(
           "imageitemvalue",
           "imageLink"
         );
@@ -207,6 +230,7 @@ export var imageItemsAdorner = {
           link = options.newValue === null ? options.value : options.newValue;
           itemValue["imageLink"] = link;
           editor.onPropertyValueChanged(property, itemValue, link);
+          editor.onQuestionEditorChanged(model);
         });
       };
       fileInput.click();
@@ -226,4 +250,4 @@ export var imageItemsAdorner = {
   }
 };
 
-registerAdorner("image-items", imageItemsAdorner);
+registerAdorner("add-image-item", addImageItemAdorner);

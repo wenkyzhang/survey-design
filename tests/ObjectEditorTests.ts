@@ -3,16 +3,14 @@ import * as Survey from "survey-knockout";
 import { SurveyObjectEditor } from "../src/objectEditor";
 import { SurveyObjectProperty } from "../src/objectProperty";
 import { BigCar, Truck, TruckDefaultValue } from "./ObjectEditorTestedClasses";
-import {
-  SurveyPropertyEditorBase,
-  ISurveyObjectEditorOptions
-} from "../src/propertyEditors/propertyEditorBase";
+import { EditorOptionsTests } from "./editorOptionsTests";
 import {
   SurveyPropertyItemValuesEditor,
   SurveyPropertyItemValuesEditorItem
 } from "../src/propertyEditors/propertyItemValuesEditor";
 import { SurveyPropertyDropdownColumnsEditor } from "../src/propertyEditors/propertyMatrixDropdownColumnsEditor";
 import { defaultStrings } from "../src/editorLocalization";
+import { SurveyDropdownPropertyEditor } from "../src/propertyEditors/propertyEditorFactory";
 
 export default QUnit.module("objectEditorTests");
 
@@ -195,13 +193,15 @@ QUnit.test(
   }
 );
 QUnit.test("Use onCanShowPropertyCallback", function(assert) {
-  var editor = new SurveyObjectEditor();
-  editor.onCanShowPropertyCallback = function(
+  var options = new EditorOptionsTests();
+  options.onCanShowPropertyCallback = function(
     object: any,
     property: Survey.JsonObjectProperty
   ) {
     return property.name == "title";
   };
+  var editor = new SurveyObjectEditor(options);
+
   var car = new TruckDefaultValue();
   editor.selectedObject = car;
   assert.equal(
@@ -210,91 +210,6 @@ QUnit.test("Use onCanShowPropertyCallback", function(assert) {
     "Only one property is accepted"
   );
 });
-
-class EditorOptionsTests implements ISurveyObjectEditorOptions {
-  alwaySaveTextInPropertyEditors: boolean;
-  showApplyButtonInEditors: boolean;
-  useTabsInElementEditor: boolean;
-  propertyName: string;
-  showObjectTitles: boolean;
-  showTitlesInExpressions: boolean;
-  onIsEditorReadOnlyCallback(
-    obj: Survey.Base,
-    editor: SurveyPropertyEditorBase,readOnly: boolean
-  ): boolean {
-    return false;
-  }
-  onItemValueAddedCallback(
-    obj: Survey.Base,
-    propertyName: string,
-    itemValue: Survey.ItemValue,
-    itemValues: Array<Survey.ItemValue>
-  ) {
-    itemValue.value = "item" + (itemValues.length + 1);
-    this.propertyName = propertyName;
-  }
-  onMatrixDropdownColumnAddedCallback(
-    matrix: Survey.Question,
-    column: Survey.MatrixDropdownColumn,
-    columns: Array<Survey.MatrixDropdownColumn>
-  ) {
-    column.name = "column1";
-    matrix["columnCount"] = columns.length;
-  }
-  onSetPropertyEditorOptionsCallback(
-    propertyName: string,
-    obj: Survey.Base,
-    editorOptions: any
-  ) {
-    if (propertyName == "choices" && obj["name"] == "hideAddRemove") {
-      editorOptions.allowAddRemoveItems = false;
-    }
-  }
-  onPropertyEditorKeyDownCallback(
-    propertyName: string,
-    obj: Survey.Base,
-    editor: SurveyPropertyEditorBase,
-    event: KeyboardEvent
-  ) {}
-  onGetErrorTextOnValidationCallback(
-    propertyName: string,
-    obj: Survey.Base,
-    value: any
-  ): string {
-    return "";
-  }
-  onValueChangingCallback(options: any) {}
-  onPropertyEditorObjectSetCallback(
-    propertyName: string,
-    obj: Survey.Base,
-    editor: SurveyPropertyEditorBase
-  ) {}
-  onPropertyEditorModalShowDescriptionCallback(
-    propertyName: string,
-    obj: Survey.Base
-  ): any {
-    var res = { top: "", bottom: "" };
-    if (obj["name"] == "showOnTop") res.top = "topValue";
-    if (obj["name"] == "showOnBottom") res.bottom = "bottomValue";
-    return res;
-  }
-  onGetElementEditorTitleCallback(obj: Survey.Base, title: string): string {
-    return title;
-  }
-  onConditionValueSurveyCreatedCallBack(
-    valueQuestionName: string,
-    propertyName: string,
-    obj: Survey.Base,
-    editor: SurveyPropertyEditorBase,
-    survey: Survey.Survey
-  ) {}
-  onConditionQuestionsGetListCallback(
-    propertyName: string,
-    obj: Survey.Base,
-    editor: SurveyPropertyEditorBase,
-    list: any[]
-  ) {}
-}
 
 QUnit.test("On new ItemValue added", function(assert) {
   var options = new EditorOptionsTests();
@@ -431,12 +346,12 @@ QUnit.test("SurveyPropertyItemValuesEditor, show 'Visible If' button", function(
 });
 
 QUnit.test("SurveyPropertyItemValuesEditor, Detail tabs", function(assert) {
-  var visibleIfProperty = Survey.JsonObject.metaData.findProperty(
+  var visibleIfProperty = Survey.Serializer.findProperty(
     "itemvalue",
     "visibleIf"
   );
   if (!visibleIfProperty) {
-    Survey.JsonObject.metaData.addProperty("itemvalue", {
+    Survey.Serializer.addProperty("itemvalue", {
       name: "visibleIf:condition",
       visible: false
     });
@@ -472,15 +387,99 @@ QUnit.test("SurveyPropertyItemValuesEditor, Detail tabs", function(assert) {
     false,
     "visibleIf will be lost in text editing"
   );
-  /* TODO add it later
-  itemValuesEditor.apply();
-  assert.equal(
-    qChoices.choices[0]["visibleIf"],
-    "{cars} contains {item}",
-    "visibleIf has been saved"
-  );
-  */
   if (!visibleIfProperty) {
-    Survey.JsonObject.metaData.removeProperty("itemvalue", "visibleIf");
+    Survey.Serializer.removeProperty("itemvalue", "visibleIf");
   }
+});
+
+QUnit.test("DependedOn properties, koVisible", function(assert) {
+  Survey.Serializer.addProperty("text", {
+    name: "customProp1",
+    dependsOn: ["inputType"],
+    visibleIf: function(obj) {
+      return obj.inputType == "date";
+    }
+  });
+  var options = new EditorOptionsTests();
+  var editor = new SurveyObjectEditor(options);
+  var question = new Survey.QuestionText("q1");
+  editor.onPropertyValueChanged.add((sender, options) => {
+    question[options.property.name] = options.newValue;
+  });
+
+  editor.selectedObject = question;
+  var custPropEditor = editor.getPropertyEditor("customProp1");
+  var inputTypePropEditor = editor.getPropertyEditor("inputType");
+
+  assert.equal(custPropEditor.koVisible(), false, "It is invisible by default");
+  inputTypePropEditor.koValue("date");
+  assert.equal(custPropEditor.koVisible(), true, "It is visible now");
+  inputTypePropEditor.koValue("range");
+  assert.equal(custPropEditor.koVisible(), false, "It is invisible again");
+
+  Survey.Serializer.removeProperty("text", "customProp1");
+});
+
+QUnit.test("DependedOn properties, koVisible", function(assert) {
+  Survey.Serializer.addProperty("question", "targetEntity");
+  Survey.Serializer.addProperty("question", {
+    name: "targetField",
+    dependsOn: "targetEntity",
+    choices: function(obj) {
+      return getChoicesByEntity(obj);
+    }
+  });
+  function getChoicesByEntity(obj: any): Array<any> {
+    var entity = !!obj ? obj["targetEntity"] : null;
+    var choices = [];
+    if (!entity) return choices;
+    choices.push({ value: null });
+    choices.push({ value: entity + " 1", text: entity + " 1" });
+    choices.push({ value: entity + " 2", text: entity + " 2" });
+    return choices;
+  }
+
+  var options = new EditorOptionsTests();
+  var editor = new SurveyObjectEditor(options);
+  var question = new Survey.QuestionText("q1");
+  editor.onPropertyValueChanged.add((sender, options) => {
+    question[options.property.name] = options.newValue;
+  });
+
+  editor.selectedObject = question;
+  var entityPropEditor = editor.getPropertyEditor("targetEntity");
+  var targetPropEditor = <SurveyDropdownPropertyEditor>(
+    editor.getPropertyEditor("targetField").editor
+  );
+
+  assert.equal(
+    targetPropEditor.koChoices().length,
+    0,
+    "It is empty by default"
+  );
+  entityPropEditor.koValue("Account");
+  assert.equal(
+    targetPropEditor.koChoices().length,
+    3,
+    "Choices updated immediately"
+  );
+
+  Survey.Serializer.removeProperty("question", "targetEntity");
+  Survey.Serializer.removeProperty("question", "targetField");
+});
+
+QUnit.test("Property Editor - property.isRequired = true", function(assert) {
+  var options = new EditorOptionsTests();
+  var editor = new SurveyObjectEditor(options);
+  var question = new Survey.QuestionText("q1");
+  editor.onPropertyValueChanged.add((sender, options) => {
+    question[options.property.name] = options.newValue;
+  });
+  editor.selectedObject = question;
+  var nameEditor = editor.getPropertyEditor("name").editor;
+  nameEditor.koValue("q2");
+  assert.equal(question.name, "q2", "Set correctly");
+  nameEditor.koValue("");
+  assert.equal(question.name, "q2", "We can't set nullable value");
+  assert.equal(nameEditor.koValue(), "q2", "Return the value to correct state");
 });

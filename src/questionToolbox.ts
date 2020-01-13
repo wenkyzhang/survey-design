@@ -23,6 +23,10 @@ export interface IQuestionToolboxItem {
    */
   title: string;
   /**
+   * Toolbox item tooltip. It equals to title if it is empty
+   */
+  tooltip?: string;
+  /**
    * True, if an end user added this item into Toolbox from the survey.
    */
   isCopied: boolean;
@@ -92,12 +96,14 @@ export class QuestionToolbox {
    */
   public copiedItemMaxCount: number = 3;
   private allowExpandMultipleCategoriesValue: boolean = false;
+  private keepAllCategoriesExpandedValue: boolean = false;
   private itemsValue: Array<IQuestionToolboxItem> = [];
 
   koItems = ko.observableArray();
   koCategories = ko.observableArray();
   koActiveCategory = ko.observable("");
   koHasCategories = ko.observable(false);
+  koCanCollapseCategories = ko.observable(true);
 
   constructor(private supportedQuestions: Array<string> = null) {
     this.createDefaultItems(supportedQuestions);
@@ -139,6 +145,13 @@ export class QuestionToolbox {
   public get items(): Array<IQuestionToolboxItem> {
     return this.itemsValue;
   }
+  public get itemNames(): Array<string> {
+    var res = [];
+    for (var i = 0; i < this.items.length; i++) {
+      res.push(this.items[i].name);
+    }
+    return res;
+  }
   /**
    * The Array of copied Toolbox items
    */
@@ -169,15 +182,17 @@ export class QuestionToolbox {
   /**
    * Add a copied Question into Toolbox
    * @param question a copied Survey.Question
-   * @param options a json object that allows you to override question properties. Attributes are: name, title, isCopied, iconName, json and category.
+   * @param options a json object that allows you to override question properties. Attributes are: name, title, tooltip, isCopied, iconName, json and category.
    */
   public addCopiedItem(question: Survey.Question, options: any = null) {
     if (!options) options = {};
     var name = !!options.name ? options.name : question.name;
     var title = !!options.title ? options.title : name;
+    var tooltip = !!options.tooltip ? options.tooltip : title;
     var item = {
       name: name,
       title: title,
+      tooltip: tooltip,
       isCopied: options.isCopied !== false,
       iconName: !!options.iconName ? options.iconName : "icon-default",
       json: !!options.json ? options.json : this.getQuestionJSON(question),
@@ -195,8 +210,13 @@ export class QuestionToolbox {
    * @see IQuestionToolboxItem
    */
   public addItem(item: IQuestionToolboxItem) {
+    this.correctItem(item);
     this.itemsValue.push(item);
     this.onItemsChanged();
+  }
+  private correctItem(item: IQuestionToolboxItem) {
+    if (!item.title) item.title = item.name;
+    if (!item.tooltip) item.tooltip = item.title;
   }
   /**
    * Add a new toolbox item, add delete the old item with the same name
@@ -204,6 +224,7 @@ export class QuestionToolbox {
    * @see IQuestionToolboxItem
    */
   public replaceItem(item: IQuestionToolboxItem): boolean {
+    this.correctItem(item);
     var index = this.indexOf(item.name);
     if (index < 0) return;
     this.itemsValue[index] = item;
@@ -255,8 +276,27 @@ export class QuestionToolbox {
   }
   public set allowExpandMultipleCategories(val: boolean) {
     this.allowExpandMultipleCategoriesValue = val;
-    if (val) {
+    this.updateCategoriesState();
+  }
+  /**
+   * Set it to true to expand all categories and hide expand/collapse category buttons
+   */
+  public get keepAllCategoriesExpanded(): boolean {
+    return this.keepAllCategoriesExpandedValue;
+  }
+  public set keepAllCategoriesExpanded(val: boolean) {
+    this.keepAllCategoriesExpandedValue = val;
+    this.koCanCollapseCategories(!this.keepAllCategoriesExpanded);
+    this.updateCategoriesState();
+  }
+  private updateCategoriesState() {
+    var noActive =
+      this.allowExpandMultipleCategories || this.keepAllCategoriesExpanded;
+    if (noActive) {
       this.activeCategory = "";
+      if (this.keepAllCategoriesExpanded) {
+        this.expandAllCategories();
+      }
     } else {
       if (this.koCategories().length > 0) {
         this.activeCategory = (<any>this.koCategories()[0]).name;
@@ -299,6 +339,7 @@ export class QuestionToolbox {
     this.koActiveCategory(val);
   }
   private doCategoryClick(categoryName: string) {
+    if (this.keepAllCategoriesExpanded) return;
     if (this.allowExpandMultipleCategories) {
       var category = this.getCategoryByName(categoryName);
       if (category) {
@@ -427,13 +468,15 @@ export class QuestionToolbox {
       var name = questions[i];
       var question = Survey.ElementFactory.Instance.createElement(name, "q1");
       if (!question) {
-        question = Survey.JsonObject.metaData.createClass(name);
+        question = Survey.Serializer.createClass(name);
       }
       var json = this.getQuestionJSON(question);
+      var title = editorLocalization.getString("qt." + name);
       var item = {
         name: name,
         iconName: "icon-" + name,
-        title: editorLocalization.getString("qt." + name),
+        title: title,
+        tooltip: title,
         json: json,
         isCopied: false,
         category: ""
@@ -463,6 +506,7 @@ export class QuestionToolbox {
         name: widgetJson.name,
         iconName: iconName,
         title: title,
+        tooltip: title,
         json: json,
         isCopied: false,
         category: ""

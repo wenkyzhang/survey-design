@@ -44,12 +44,6 @@ export class SurveyForDesigner extends Survey.Survey {
     this.onAfterRenderPage.add((sender: Survey.Survey, options) => {
       options.page["onAfterRenderPage"](options.htmlElement);
     });
-    this.onAfterRenderQuestion.add((sender: Survey.Survey, options) => {
-      options.question["onAfterRenderQuestion"](options.htmlElement);
-    });
-    this.onAfterRenderPanel.add((sender: Survey.Survey, options) => {
-      options.panel["onAfterRenderPanel"](options.htmlElement);
-    });
     this.editQuestionClick = function() {
       self.onEditButtonClick.fire(self, null);
     };
@@ -165,23 +159,6 @@ function elementOnCreating(surveyElement: any) {
   });
 }
 
-function addEmptyPanelElement(
-  root: HTMLElement,
-  dragDropHelper: any,
-  self: any
-): HTMLElement {
-  var eDiv: HTMLDivElement = document.createElement("div");
-  eDiv.className = "well card card-block";
-  eDiv.ondragover = function(e) {
-    dragDropHelper.doDragDropOver(e, self);
-  };
-  var eSpan: HTMLSpanElement = document.createElement("span");
-  eSpan.textContent = getSurvey(self).getEditorLocString("survey.dropQuestion");
-  eDiv.appendChild(eSpan);
-  root.appendChild(eDiv);
-  return eDiv;
-}
-
 function createQuestionDesignItem(obj: any, item: any): HTMLLIElement {
   var res = <HTMLLIElement>document.createElement("li");
   var btn = document.createElement("button");
@@ -195,75 +172,94 @@ function createQuestionDesignItem(obj: any, item: any): HTMLLIElement {
   return res;
 }
 
-function elementOnAfterRendering(
-  domElement: any,
-  surveyElement: any,
-  isPanel: boolean,
-  disable: boolean
-) {
-  surveyElement.renderedElement = domElement;
-  surveyElement.renderedElement.classList.add("svd_question");
-  if (StylesManager.currentTheme() === "bootstrap") {
-    surveyElement.renderedElement.classList.add("svd-dark-bg-color");
-  }
-  surveyElement.renderedElement.classList.add("svd_q_design_border");
+export function createAfterRenderHandler(creator: any, survey: SurveyForDesigner) {
+  return function elementOnAfterRendering(
+    domElement: any,
+    surveyElement: any,
+    isPanel: boolean,
+    disable: boolean
+  ) {
+    surveyElement.renderedElement = domElement;
+    surveyElement.renderedElement.classList.add("svd_question");
+    if (StylesManager.currentTheme() === "bootstrap") {
+      surveyElement.renderedElement.classList.add("svd-dark-bg-color");
+    }
+    surveyElement.renderedElement.classList.add("svd_q_design_border");
+  
+    var isRowLayout =
+      !surveyElement.getLayoutType || surveyElement.getLayoutType() == "row";
+    var opt = surveyElement.allowingOptions;
+    opt.allowCopy = opt.allowCopy && isRowLayout;
+    opt.allowAddToToolbox = opt.allowAddToToolbox && isRowLayout;
+    opt.allowChangeType = opt.allowChangeType && isRowLayout;
+    opt.allowShowHideTitle = opt.allowShowHideTitle && isRowLayout;
+    opt.allowChangeRequired = opt.allowChangeRequired && isRowLayout;
+  
+    getSurvey(surveyElement).updateElementAllowingOptions(surveyElement);
+    if (surveyElement.koIsSelected()) {
+      surveyElement.renderedElement.classList.add(
+        "svd_q_selected",
+        "svd-main-border-color"
+      );
+    }
 
-  var isRowLayout =
-    !surveyElement.getLayoutType || surveyElement.getLayoutType() == "row";
-  var opt = surveyElement.allowingOptions;
-  opt.allowCopy = opt.allowCopy && isRowLayout;
-  opt.allowAddToToolbox = opt.allowAddToToolbox && isRowLayout;
-  opt.allowChangeType = opt.allowChangeType && isRowLayout;
-  opt.allowShowHideTitle = opt.allowShowHideTitle && isRowLayout;
-  opt.allowChangeRequired = opt.allowChangeRequired && isRowLayout;
+    domElement.onclick = function(e) {
+      if (!e["markEvent"]) {
+        e["markEvent"] = true;
+        if (surveyElement.parent) {
+          getSurvey(surveyElement)["selectedElement"] = surveyElement;
+        }
+      }
+    };
 
-  getSurvey(surveyElement).updateElementAllowingOptions(surveyElement);
-  if (surveyElement.koIsSelected())
-    surveyElement.renderedElement.classList.add(
-      "svd_q_selected",
-      "svd-main-border-color"
-    );
-  surveyElement.dragDropHelper().attachToElement(domElement, surveyElement);
-  domElement.tabindex = "0";
-  domElement.onclick = function(e) {
-    if (!e["markEvent"]) {
-      e["markEvent"] = true;
-      if (surveyElement.parent) {
-        getSurvey(surveyElement)["selectedElement"] = surveyElement;
+    disable = disable && !(surveyElement.getType() == "paneldynamic"); //TODO
+    if (disable) {
+      var childs = domElement.childNodes;
+      for (var i = 0; i < childs.length; i++) {
+        if (childs[i].style) childs[i].style.pointerEvents = "none";
       }
     }
-  };
-  domElement.onkeyup = function(e) {
-    var char = e.which || e.keyCode;
-    if (char === 0x13 || char === 0x20) {
-      domElement.click();
+    
+    if(creator.readOnly) {
+      addAdorner(domElement, surveyElement);
+      return;
     }
-  };
-  // el.onkeydown = function(e) {
-  //   if (e.witch == 46) getSurvey(surveyElement).deleteCurrentObjectClick();
-  //   return true;
-  // };
-  domElement.ondblclick = function(e) {
-    getSurvey(surveyElement).doElementDoubleClick(surveyElement);
-  };
-  disable = disable && !(surveyElement.getType() == "paneldynamic"); //TODO
-  if (disable) {
-    var childs = domElement.childNodes;
-    for (var i = 0; i < childs.length; i++) {
-      if (childs[i].style) childs[i].style.pointerEvents = "none";
-    }
-  }
-  var setTabIndex = element => {
-    element.tabIndex = -1;
-  };
-  ["input", "select", "textarea"].forEach(sel => {
-    var elements = domElement.querySelectorAll(sel);
-    for (var i = 0; i < elements.length; i++) {
-      setTabIndex(elements[i]);
-    }
-  });
 
-  addAdorner(domElement, surveyElement);
+    surveyElement.dragDropHelper().attachToElement(domElement, surveyElement);
+    domElement.tabindex = "0";
+    domElement.onkeyup = function(e) {
+      var activeElement = !!document && document.activeElement;
+      if (
+        !!activeElement &&
+        !!activeElement["dataset"] &&
+        activeElement["dataset"].svdInfo === "adorner"
+      ) {
+        return;
+      }
+      var char = e.which || e.keyCode;
+      if (char === 0x13 || char === 0x20) {
+        domElement.click();
+      }
+    };
+    // el.onkeydown = function(e) {
+    //   if (e.witch == 46) getSurvey(surveyElement).deleteCurrentObjectClick();
+    //   return true;
+    // };
+    domElement.ondblclick = function(e) {
+      getSurvey(surveyElement).doElementDoubleClick(surveyElement);
+    };
+    var setTabIndex = element => {
+      element.tabIndex = -1;
+    };
+    ["input", "select", "textarea"].forEach(sel => {
+      var elements = domElement.querySelectorAll(sel);
+      for (var i = 0; i < elements.length; i++) {
+        setTabIndex(elements[i]);
+      }
+    });
+  
+    addAdorner(domElement, surveyElement);
+  }
 }
 
 var adornersConfig: { [index: string]: any[] } = {};
@@ -346,7 +342,11 @@ function addAdorner(node, model) {
           elements = [node];
         }
         if (elements.length > 0) {
-          adorner.afterRender(elements, model, getSurvey(model).getEditor());
+          var editor =  getSurvey(model).getEditor();
+          if(editor.readOnly)
+            adorner.renderReadOnly && adorner.renderReadOnly(elements, model, editor);
+          else
+            adorner.afterRender(elements, model, editor);
         }
       }
     });
@@ -383,14 +383,6 @@ Survey.Panel.prototype["onCreating"] = function() {
   elementOnCreating(this);
 };
 
-Survey.Panel.prototype["onAfterRenderPanel"] = function(el) {
-  if (!getSurvey(this).isDesignMode) return;
-  var self = this;
-  if (this.elements.length == 0) {
-    this.emptyElement = addEmptyPanelElement(el, self.dragDropHelper(), self);
-  }
-  elementOnAfterRendering(el, this, true, this.koIsDragging());
-};
 Survey.Panel.prototype["onSelectedElementChanged"] = function() {
   if (getSurvey(this) == null) return;
   this.koIsSelected(getSurvey(this)["selectedElementValue"] == this);
@@ -401,18 +393,6 @@ if (!!Survey["FlowPanel"]) {
     //TODO
     this.placeHolder = "Enter here text or drop a question";
     elementOnCreating(this);
-  };
-  Survey["FlowPanel"].prototype["onAfterRenderPanel"] = function(el) {
-    if (!getSurvey(this).isDesignMode) return;
-    elementOnAfterRendering(el, this, true, this.koIsDragging());
-    var pnlEl = el.querySelector("f-panel");
-    if (!!pnlEl) {
-      if (!!pnlEl.className) {
-        pnlEl.className += " svd_flowpanel";
-      } else {
-        pnlEl.className = "svd_flowpanel";
-      }
-    }
   };
   Survey["FlowPanel"].prototype["onSelectedElementChanged"] = function() {
     if (getSurvey(this) == null) return;
@@ -428,11 +408,6 @@ questionPrototype["onCreating"] = function() {
   elementOnCreating(this);
 };
 
-questionPrototype["onAfterRenderQuestion"] = function(el) {
-  if (!getSurvey(this).isDesignMode) return;
-  elementOnAfterRendering(el, this, false, true);
-};
-
 questionPrototype["onSelectedElementChanged"] = function() {
   if (getSurvey(this) == null) return;
   this.koIsSelected(getSurvey(this)["selectedElementValue"] == this);
@@ -440,7 +415,20 @@ questionPrototype["onSelectedElementChanged"] = function() {
 
 Survey.QuestionSelectBaseImplementor.prototype["onCreated"] = function() {
   var q: any = this.question;
-  this.question.registerFunctionOnPropertyValueChanged("choices", function() {
-    q["koElementType"].notifySubscribers();
-  });
+  var updateTriggerFunction = function() {
+    setTimeout(() => q["koElementType"].notifySubscribers(), 0);
+  };
+  [
+    "choices",
+    "hasOther",
+    "hasComment",
+    "hasNone",
+    "hasSelectAll",
+    "colCount"
+  ].forEach(propertyName =>
+    this.question.registerFunctionOnPropertyValueChanged(
+      propertyName,
+      updateTriggerFunction
+    )
+  );
 };
